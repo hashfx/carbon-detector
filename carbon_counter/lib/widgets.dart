@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class StatusIndicator extends StatelessWidget {
   final bool isReading;
 
-  StatusIndicator({required this.isReading});
+  const StatusIndicator({super.key, required this.isReading});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +32,7 @@ class DataChip extends StatelessWidget {
   final String label;
   final Color color;
 
-  DataChip({required this.label, required this.color});
+  const DataChip({super.key, required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
