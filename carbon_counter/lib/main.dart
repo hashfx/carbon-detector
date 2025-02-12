@@ -12,6 +12,8 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -23,6 +25,8 @@ class MyApp extends StatelessWidget {
 }
 
 class CarbonDataScreen extends StatefulWidget {
+  const CarbonDataScreen({super.key});
+
   @override
   _CarbonDataScreenState createState() => _CarbonDataScreenState();
 }
