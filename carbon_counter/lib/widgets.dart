@@ -1,29 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:carbon_counter/data_model.dart';
 import 'package:intl/intl.dart';
-import 'package:timezone/timezone.dart';
+import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 
 class StatusIndicator extends StatelessWidget {
-  final bool isReading;
+  final String status;
 
-  StatusIndicator({required this.isReading});
+  StatusIndicator({required this.status});
 
   @override
   Widget build(BuildContext context) {
+    Color indicatorColor;
+    if (status == "Reading Live Data") {
+      indicatorColor = Colors.green;
+    } else if (status == "Using Historic Data") {
+      indicatorColor = Colors.orange;
+    } else if (status == "Not Reading Data") {
+      indicatorColor = Colors.red;
+    } else {
+      indicatorColor = Colors.grey; // default state
+    }
+
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.circle,
-            color: isReading ? Colors.green : Colors.red,
-            size: 16,
-          ),
+          Icon(Icons.circle, color: indicatorColor, size: 16),
           SizedBox(width: 8),
           Text(
-            isReading ? "Reading Data" : "Not Reading Data",
+            status, // Display the status message
             style: TextStyle(fontSize: 16),
           ),
         ],
@@ -65,7 +72,7 @@ class DataChips extends StatelessWidget {
       return Text("No real-time data available.");
     }
 
-    DateTime dateTimeLocal; // initially parse as local DateTime
+    DateTime dateTimeLocal;
     try {
       dateTimeLocal = DateFormat('yyyy-MM-dd HH:mm:ss').parse(data!.time);
     } catch (e) {
@@ -73,22 +80,15 @@ class DataChips extends StatelessWidget {
     }
 
     tz.initializeTimeZones();
-    final ist = getLocation('Asia/Kolkata'); // get IST timezone location
-    final dateTimeIST = TZDateTime.from(
-      dateTimeLocal,
-      ist,
-    ); // convert local DateTime to IST
+    final ist = tz.getLocation('Asia/Kolkata');
+    final dateTimeIST = tz.TZDateTime.from(dateTimeLocal, ist);
 
-    String formattedTime = DateFormat(
-      'HH:mm:ss',
-    ).format(dateTimeIST); // format IST time
+    String formattedTime = DateFormat('HH:mm:ss').format(dateTimeIST);
 
     return Column(
       children: [
         Chip(
-          label: Text(
-            "Time: $formattedTime",
-          ),
+          label: Text("Time (IST): $formattedTime"),
           avatar: Icon(Icons.access_time),
         ),
         SizedBox(height: 8),
@@ -105,3 +105,5 @@ class DataChips extends StatelessWidget {
     );
   }
 }
+
+
