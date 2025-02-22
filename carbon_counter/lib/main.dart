@@ -185,22 +185,22 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
                   DataRow(
                     cells: [
                       DataCell(Text('Average')),
-                      DataCell(Text('${stats.avgMq7.toStringAsFixed(2)}')),
-                      DataCell(Text('${stats.avgMq135.toStringAsFixed(2)}')),
+                      DataCell(Text(stats.avgMq7.toStringAsFixed(2))),
+                      DataCell(Text(stats.avgMq135.toStringAsFixed(2))),
                     ],
                   ),
                   DataRow(
                     cells: [
                       DataCell(Text('Maximum')),
-                      DataCell(Text('${stats.maxMq7.toStringAsFixed(2)}')),
-                      DataCell(Text('${stats.maxMq135.toStringAsFixed(2)}')),
+                      DataCell(Text(stats.maxMq7.toStringAsFixed(2))),
+                      DataCell(Text(stats.maxMq135.toStringAsFixed(2))),
                     ],
                   ),
                   DataRow(
                     cells: [
                       DataCell(Text('Minimum')),
-                      DataCell(Text('${stats.minMq7.toStringAsFixed(2)}')),
-                      DataCell(Text('${stats.minMq135.toStringAsFixed(2)}')),
+                      DataCell(Text(stats.minMq7.toStringAsFixed(2))),
+                      DataCell(Text(stats.minMq135.toStringAsFixed(2))),
                     ],
                   ),
                 ],
@@ -241,22 +241,22 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
                   DataRow(
                     cells: [
                       DataCell(Text('Average')),
-                      DataCell(Text('${stats.avgMq7.toStringAsFixed(2)}')),
-                      DataCell(Text('${stats.avgMq135.toStringAsFixed(2)}')),
+                      DataCell(Text(stats.avgMq7.toStringAsFixed(2))),
+                      DataCell(Text(stats.avgMq135.toStringAsFixed(2))),
                     ],
                   ),
                   DataRow(
                     cells: [
                       DataCell(Text('Maximum')),
-                      DataCell(Text('${stats.maxMq7.toStringAsFixed(2)}')),
-                      DataCell(Text('${stats.maxMq135.toStringAsFixed(2)}')),
+                      DataCell(Text(stats.maxMq7.toStringAsFixed(2))),
+                      DataCell(Text(stats.maxMq135.toStringAsFixed(2))),
                     ],
                   ),
                   DataRow(
                     cells: [
                       DataCell(Text('Minimum')),
-                      DataCell(Text('${stats.minMq7.toStringAsFixed(2)}')),
-                      DataCell(Text('${stats.minMq135.toStringAsFixed(2)}')),
+                      DataCell(Text(stats.minMq7.toStringAsFixed(2))),
+                      DataCell(Text(stats.minMq135.toStringAsFixed(2))),
                     ],
                   ),
                 ],
@@ -293,22 +293,22 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
                   DataRow(
                     cells: [
                       DataCell(Text('Average')),
-                      DataCell(Text('${stats.avgMq7.toStringAsFixed(2)}')),
-                      DataCell(Text('${stats.avgMq135.toStringAsFixed(2)}')),
+                      DataCell(Text(stats.avgMq7.toStringAsFixed(2))),
+                      DataCell(Text(stats.avgMq135.toStringAsFixed(2))),
                     ],
                   ),
                   DataRow(
                     cells: [
                       DataCell(Text('Maximum')),
-                      DataCell(Text('${stats.maxMq7.toStringAsFixed(2)}')),
-                      DataCell(Text('${stats.maxMq135.toStringAsFixed(2)}')),
+                      DataCell(Text(stats.maxMq7.toStringAsFixed(2))),
+                      DataCell(Text(stats.maxMq135.toStringAsFixed(2))),
                     ],
                   ),
                   DataRow(
                     cells: [
                       DataCell(Text('Minimum')),
-                      DataCell(Text('${stats.minMq7.toStringAsFixed(2)}')),
-                      DataCell(Text('${stats.minMq135.toStringAsFixed(2)}')),
+                      DataCell(Text(stats.minMq7.toStringAsFixed(2))),
+                      DataCell(Text(stats.minMq135.toStringAsFixed(2))),
                     ],
                   ),
                 ],
