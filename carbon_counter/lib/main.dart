@@ -36,7 +36,10 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
   late ApiService _apiService;
   late Timer _timer;
   List<CarbonData> _data = [];
-  bool _isReadingData = false;
+  String _dataStatus = "Reading Data...";
+  DateTime? _lastFetchTime;
+  static const Duration _dataStaleThreshold = Duration(seconds: 15);
+  static const Duration _fetchInterval = Duration(seconds: 5);
 
   DailyStats? _dailyStats;
   WeeklyStats? _weeklyStats;
@@ -45,13 +48,12 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
   @override
   void initState() {
     super.initState();
-    _apiService = ApiService(
-      dotenv.env['APPS_SCRIPT_URL']!,
-    );
+    _apiService = ApiService(dotenv.env['APPS_SCRIPT_URL']!);
 
     _fetchDataAndStats();
-    _timer = Timer.periodic(Duration(seconds: 5), (timer) {
+    _timer = Timer.periodic(_fetchInterval, (timer) {
       _fetchDataAndStats();
+      _updateDataStatus();
     });
   }
 
@@ -60,8 +62,9 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
       final data = await _apiService.getCarbonData();
       setState(() {
         _data = data;
-        _isReadingData = true;
+        _lastFetchTime = DateTime.now();
       });
+      _updateDataStatus();
 
       if (_data.isNotEmpty) {
         final daily = _apiService.calculateDailyStats(_data);
@@ -76,9 +79,28 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
       }
     } catch (e) {
       setState(() {
-        _isReadingData = false;
+        _dataStatus = "Not Reading Data";
       });
       print("Error fetching data and stats: $e");
+    }
+  }
+
+  void _updateDataStatus() {
+    if (_lastFetchTime == null) {
+      setState(() {
+        _dataStatus = "Reading Data...";
+      });
+    } else {
+      final timeSinceLastFetch = DateTime.now().difference(_lastFetchTime!);
+      if (timeSinceLastFetch < _dataStaleThreshold) {
+        setState(() {
+          _dataStatus = "Reading Live Data";
+        });
+      } else {
+        setState(() {
+          _dataStatus = "Using Historic Data";
+        });
+      }
     }
   }
 
@@ -91,27 +113,59 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Carbon Data Monitor')),
+      appBar: AppBar(
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FlutterLogo(
+              size: 30,
+            ), // placeholder app logo
+            SizedBox(
+              width: 8,
+            ), // spacing between logo and title
+            Text('Carbon शोधक'),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _fetchDataAndStats,
+            tooltip: 'Refresh Data',
+          ),
+          IconButton(
+            icon: Icon(Icons.settings),
+            onPressed: () {
+              _openSettings(context);
+            },
+            tooltip: 'Settings',
+          ),
+          IconButton(
+            icon: Icon(Icons.help_outline),
+            onPressed: () {
+              _openHelp(context);
+            },
+            tooltip: 'Help',
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            StatusIndicator(isReading: _isReadingData),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                "Data from the Sheet",
-                style: Theme.of(context).textTheme.titleMedium,
-                textAlign: TextAlign.center,
-              ),
-            ),
+            StatusIndicator(status: _dataStatus),
+            // Padding(
+            //   padding: const EdgeInsets.all(8.0),
+            //   child: Text(
+            //     "Data from the Sheet",
+            //     style: Theme.of(context).textTheme.titleMedium,
+            //     textAlign: TextAlign.center,
+            //   ),
+            // ),
             Center(
               child:
                   _data.isEmpty
                       ? CircularProgressIndicator()
-                      : DataChips(
-                        data: _data.isNotEmpty ? _data.last : null,
-                      ),
+                      : DataChips(data: _data.isNotEmpty ? _data.last : null),
             ),
             SizedBox(height: 20),
             Padding(
@@ -126,6 +180,58 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
           ],
         ),
       ),
+      bottomNavigationBar: BottomAppBar(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text(
+            'Copyright © 2024 Carbon Data App',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openSettings(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Settings"),
+          content: Text("Settings options will be implemented here."),
+          actions: <Widget>[
+            TextButton(
+              child: Text("Close"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _openHelp(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Help & Information"),
+          content: Text(
+            "This app monitors carbon data from MQ-7 and MQ-135 sensors. Data is fetched from a Google Sheet. \n\n - 'Reading Live Data': App is actively receiving data.\n - 'Using Historic Data': Data might be slightly delayed.\n - 'Not Reading Data':  Data fetching is currently failing.\n\nTap 'Refresh' to manually update data.",
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text("Close"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
