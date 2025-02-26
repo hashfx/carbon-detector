@@ -23,7 +23,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue[100], // bgColor of splash screen
+      backgroundColor: Colors.blue[200], // bgColor of splash screen
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -31,11 +31,6 @@ class _SplashScreenState extends State<SplashScreen> {
             // title of Splash Screen
             Column(
               children: [
-                Container(
-                  height: 4,
-                  color: Colors.blue[800],
-                  margin: EdgeInsets.only(bottom: 4),
-                ),
                 Text(
                   'Carbon शोधक',
                   style: TextStyle(
