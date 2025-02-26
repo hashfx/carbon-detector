@@ -7,7 +7,7 @@ import 'package:timezone/data/latest.dart' as tz;
 class StatusIndicator extends StatelessWidget {
   final String status;
 
-  StatusIndicator({required this.status});
+  const StatusIndicator({super.key, required this.status});
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +42,7 @@ class StatusIndicator extends StatelessWidget {
 class DataButton extends StatelessWidget {
   final CarbonData data;
 
-  DataButton({required this.data});
+  const DataButton({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +64,7 @@ class DataButton extends StatelessWidget {
 class DataChips extends StatelessWidget {
   final CarbonData? data;
 
-  DataChips({required this.data});
+  const DataChips({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
