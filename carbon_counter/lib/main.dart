@@ -5,6 +5,7 @@ import 'package:carbon_counter/data_model.dart';
 import 'package:carbon_counter/widgets.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'splash_screen.dart'; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,7 +21,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Carbon Data App',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: CarbonDataScreen(),
+      // home: CarbonDataScreen(), // without splash screen
+      home: SplashScreen(),
     );
   }
 }
