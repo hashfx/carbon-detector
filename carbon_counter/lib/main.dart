@@ -220,7 +220,7 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
         return AlertDialog(
           title: Text("Help & Information"),
           content: Text(
-            "This app monitors carbon data from MQ-7 and MQ-135 sensors. Data is fetched from a Google Sheet. \n\n - 'Reading Live Data': App is actively receiving data.\n - 'Using Historic Data': Data might be slightly delayed.\n - 'Not Reading Data':  Data fetching is currently failing.\n\nTap 'Refresh' to manually update data.",
+            "This app monitors carbon data from MQ-7 and MQ-135 sensors. Data is fetched from a Google Sheet. \n\n - 'Reading Live Data': App is actively receiving data.\n - 'Using Historic Data': Data might be slightly delayed.\n - 'Not Reading Data':  Data fetching is currently failing.\n\nTap 'Refresh' to manually update data. \n\n Built by Harsh Soni with 💖",
           ),
           actions: <Widget>[
             TextButton(
