@@ -9,11 +9,34 @@ class SplashScreen extends StatefulWidget {
   _SplashScreenState createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _logoAnimationController;
+  late Animation<double> _logoSlideAnimation;
+
   @override
   void initState() {
     super.initState();
-    Timer(Duration(seconds: 3), () {
+
+    // Logo Slide-in Animation
+    _logoAnimationController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    );
+    _logoSlideAnimation = Tween<double>(
+      begin: -300.0, // Start position off-screen to the left
+      end: 0.0, // End position at the center (or desired horizontal position)
+    ).animate(
+      CurvedAnimation(
+        parent: _logoAnimationController,
+        curve: Curves.easeInOutQuart,
+      ),
+    );
+
+    _logoAnimationController.forward(); // Start animations
+
+    // Timer for Splash Screen Duration and Navigation
+    Timer(Duration(seconds: 4), () {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => CarbonDataScreen()),
       );
@@ -21,43 +44,47 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   @override
+  void dispose() {
+    _logoAnimationController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue[200], // bgColor of splash screen
+      backgroundColor: Colors.blue[200],
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            // title of Splash Screen
-            Column(
-              children: [
-                Text(
-                  'Carbon शोधक',
-                  style: TextStyle(
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue[900],
-                  ),
-                ),
-              ],
+            // Animated Logo Image (Slide-in)
+            AnimatedBuilder(
+              animation: _logoAnimationController,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(
+                    _logoSlideAnimation.value,
+                    0.0,
+                  ), // Horizontal translation
+                  child: child,
+                );
+              },
+              child: Image.asset(
+                // Child widget that gets animated
+                'assets/images/carbon_shodhak_logo.png',
+                height: 150,
+              ),
             ),
-            SizedBox(height: 20), // spacing between title and subtitle
+            SizedBox(height: 20),
             Text(
-              'Carbon is in the Air: Tracking the Invisible', // Subtitle
+              'Carbon is in the Air: Tracking the Invisible',
               style: TextStyle(
                 fontSize: 20,
                 fontStyle: FontStyle.italic,
-                color: Colors.grey[700],
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2C3E50),
               ),
             ),
-            SizedBox(height: 40), // Spacing before the image/icon
-            Icon(
-              Icons.air, // image
-              size: 100,
-              color: Colors.green[400],
-            ),
-            // image from assets
-            // Image.asset('assets/images/splash_image.png', height: 150),
           ],
         ),
       ),
