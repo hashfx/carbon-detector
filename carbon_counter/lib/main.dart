@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Carbon Data App',
+      title: 'Carbon शोधक App',
       theme: ThemeData(primarySwatch: Colors.blue),
       // home: CarbonDataScreen(), // without splash screen
       home: SplashScreen(),
@@ -186,7 +186,7 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Text(
-            'Copyright © 2024 Carbon Data App',
+            'Copyright © 2025 Carbon शोधक App',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, color: Colors.grey[600]),
           ),
