@@ -225,7 +225,7 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(AppConstants.screenPadding),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      // crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         StatusIndicator(status: _dataStatus),
                         const SizedBox(height: AppConstants.sectionSpacing),
