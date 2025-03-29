@@ -14,38 +14,39 @@ class DataChips extends StatelessWidget {
 
   // Helper to format time safely
   String _formatTime(String timeString) {
+    if (timeString.isEmpty) return "Invalid Time";
+
     try {
-      // First, try parsing with the specific format expected from Sheets
-      DateTime dateTimeUtc = DateFormat(
-        'yyyy-MM-dd HH:mm:ss',
-      ).parseUtc(timeString);
+      // Use DateTime.parse for ISO 8601 format ('...T...Z')
+      DateTime dateTimeUtc = DateTime.parse(timeString);
 
       // Get the IST timezone
       final ist = tz.getLocation('Asia/Kolkata');
-      // Convert the UTC time to IST
+      // Convert the parsed UTC time to IST
       final dateTimeIST = tz.TZDateTime.from(dateTimeUtc, ist);
 
-      // Format the IST time
+      // Format the IST time for display
       return DateFormat('HH:mm:ss').format(dateTimeIST);
     } catch (e) {
-      print("Error parsing/formatting date '$timeString': $e");
-      // Fallback for potentially different formats or invalid strings
+      // Log the error if parsing fails for any reason
+      print("Error parsing/formatting date chip '$timeString': $e");
+      // You could try the old format as a fallback here too, if necessary
       try {
-        DateTime? genericDateTime = DateTime.tryParse(timeString);
-        if (genericDateTime != null) {
-          // Assume it might be local time if parse succeeds without format
-          // Or convert to UTC if known, then to IST
-          final ist = tz.getLocation('Asia/Kolkata');
-          final dateTimeIST = tz.TZDateTime.from(
-            genericDateTime.toUtc(),
-            ist,
-          ); // Example: Treat as UTC
-          return DateFormat('HH:mm:ss').format(dateTimeIST);
-        }
+        print(
+          "Warning: Chip ISO8601 parse failed for '$timeString', trying 'yyyy-MM-dd HH:mm:ss'. Error: $e",
+        );
+        DateTime fallbackUtc = DateFormat(
+          'yyyy-MM-dd HH:mm:ss',
+        ).parseUtc(timeString);
+        final ist = tz.getLocation('Asia/Kolkata');
+        final dateTimeIST = tz.TZDateTime.from(fallbackUtc, ist);
+        return DateFormat('HH:mm:ss').format(dateTimeIST);
       } catch (e2) {
-        print("Fallback date parsing failed for '$timeString': $e2");
+        print(
+          "Error parsing chip date string with fallback: '$timeString', error: $e2",
+        );
+        return "Invalid Time"; // Return placeholder if all parsing fails
       }
-      return "Invalid Time"; // Return placeholder if parsing fails
     }
   }
 
