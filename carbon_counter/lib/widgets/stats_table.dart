@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
-// Corrected import path
 import 'package:carbon_counter/models/carbon_stats.dart';
 import 'package:carbon_counter/utils/constants.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 class StatsTable extends StatelessWidget {
   final DailyStats? dailyStats;
@@ -17,36 +16,137 @@ class StatsTable extends StatelessWidget {
     this.monthlyStats,
   });
 
+  // --- Date Formatting Helpers (_formatDateDisplay, _formatWeekDisplay, _formatMonthDisplay) remain the same ---
+  String _formatDateDisplay(DateTime utcDate) {
+    try {
+      final ist = tz.getLocation('Asia/Kolkata');
+      final localDate = tz.TZDateTime.from(utcDate, ist);
+      return DateFormat('yyyy-MM-dd').format(localDate);
+    } catch (e) {
+      print("Error formatting date $utcDate for display: $e");
+      return DateFormat(
+        'yyyy-MM-dd',
+      ).format(utcDate); // Fallback to UTC display
+    }
+  }
+
+  String _formatWeekDisplay(DateTime utcStartDate, DateTime utcEndDate) {
+    try {
+      final ist = tz.getLocation('Asia/Kolkata');
+      final localStartDate = tz.TZDateTime.from(utcStartDate, ist);
+      final localEndDate = tz.TZDateTime.from(utcEndDate, ist);
+
+      String startDateFormatted = DateFormat('dd MMM').format(localStartDate);
+      String endDateFormatted = DateFormat('dd MMM yyyy').format(localEndDate);
+
+      return '$startDateFormatted -\n$endDateFormatted';
+    } catch (e) {
+      print(
+        "Error formatting week $utcStartDate - $utcEndDate for display: $e",
+      );
+
+      return '${DateFormat('yyyy-MM-dd').format(utcStartDate)} - ${DateFormat('yyyy-MM-dd').format(utcEndDate)}';
+    }
+  }
+
+  String _formatMonthDisplay(DateTime utcMonthDate) {
+    try {
+      final ist = tz.getLocation('Asia/Kolkata');
+      final localDate = tz.TZDateTime.from(utcMonthDate, ist);
+      return DateFormat('MMMM yyyy').format(localDate); // Example: October 2023
+    } catch (e) {
+      print("Error formatting month $utcMonthDate for display: $e");
+      return DateFormat(
+        'yyyy-MM',
+      ).format(utcMonthDate); // Fallback to UTC display
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _buildSingleStatTable(
-          context: context,
-          title: "Daily Statistics",
-          stats: dailyStats,
-        ),
-        const SizedBox(height: AppConstants.sectionSpacing),
-        _buildSingleStatTable(
-          context: context,
-          title: "Weekly Statistics",
-          stats: weeklyStats,
-        ),
-        const SizedBox(height: AppConstants.sectionSpacing),
-        _buildSingleStatTable(
-          context: context,
-          title: "Monthly Statistics",
-          stats: monthlyStats,
-        ),
-      ],
+    // Build the individual table widgets once, so they can be reused in different layouts
+    final dailyTableWidget = _buildSingleStatTable(
+      context: context,
+      title: "Daily Statistics",
+      stats: dailyStats,
+    );
+
+    final weeklyTableWidget = _buildSingleStatTable(
+      context: context,
+      title: "Weekly Statistics",
+      stats: weeklyStats,
+    );
+
+    final monthlyTableWidget = _buildSingleStatTable(
+      context: context,
+      title: "Monthly Statistics",
+      stats: monthlyStats,
+    );
+
+    // Use LayoutBuilder to get available width and decide layout
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double maxWidth = constraints.maxWidth;
+
+        // --- Define Breakpoints (Adjust these values based on testing) ---
+        // Width required for 3 tables comfortably side-by-side
+        const double wideLayoutBreakpoint = 1100.0;
+        // Width required for 2 tables comfortably side-by-side
+        const double mediumLayoutBreakpoint = 720.0;
+
+        // --- Determine Layout Based on Width ---
+
+        if (maxWidth >= wideLayoutBreakpoint) {
+          // Wide Screen: Layout 3 tables in a single Row
+          return Row(
+            crossAxisAlignment:
+                CrossAxisAlignment.start, // Align cards to the top
+            children: [
+              Expanded(child: dailyTableWidget), // Use Expanded to divide space
+              const SizedBox(width: AppConstants.sectionSpacing),
+              Expanded(child: weeklyTableWidget),
+              const SizedBox(width: AppConstants.sectionSpacing),
+              Expanded(child: monthlyTableWidget),
+            ],
+          );
+        } else if (maxWidth >= mediumLayoutBreakpoint) {
+          // Medium Screen: Layout 2 tables in first row, 1 below
+          return Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: dailyTableWidget),
+                  const SizedBox(width: AppConstants.sectionSpacing),
+                  Expanded(child: weeklyTableWidget),
+                ],
+              ),
+              const SizedBox(height: AppConstants.sectionSpacing),
+              Center(child: monthlyTableWidget),
+            ],
+          );
+        } else {
+          // Narrow Screen: Stack all 3 tables vertically
+          return Column(
+            children: [
+              dailyTableWidget,
+              const SizedBox(height: AppConstants.sectionSpacing),
+              weeklyTableWidget,
+              const SizedBox(height: AppConstants.sectionSpacing),
+              monthlyTableWidget,
+            ],
+          );
+        }
+      },
     );
   }
 
-  // Helper to build individual tables
+  // --- _buildSingleStatTable Method (Builds one Card with a potentially scrollable DataTable) ---
+  // This method remains largely the same as before, focusing on building *one* table card.
   Widget _buildSingleStatTable({
     required BuildContext context,
     required String title,
-    dynamic stats, // Can be DailyStats, WeeklyStats, or MonthlyStats
+    dynamic stats,
   }) {
     final textTheme = Theme.of(context).textTheme;
     final noDataMessage = "$title: No data available yet.";
@@ -54,45 +154,71 @@ class StatsTable extends StatelessWidget {
     return Card(
       elevation: 2.0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch, // Make title stretch
-          children: [
-            Text(
+      clipBehavior: Clip.antiAlias, // Clip scrolling content
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch, // Title stretches
+        children: [
+          Padding(
+            // Title padding
+            padding: const EdgeInsets.only(top: 12.0, bottom: 8.0),
+            child: Text(
               title,
               style: textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
-            if (stats == null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Text(
-                  noDataMessage,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.grey),
-                ),
-              )
-            else
-              _buildDataTableContent(stats: stats),
-          ],
-        ),
+          ),
+          // Wrap the SingleChildScrollView with Center to center the table content
+          // horizontally within the card if the table is narrower than the card.
+          Center(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              // Add padding inside the scroll view IF the table content itself needs it
+              // padding: EdgeInsets.symmetric(horizontal: 4.0), // Optional internal padding
+              child: Padding(
+                // Padding below the table content inside the scroll view
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child:
+                    stats == null
+                        ? Container(
+                          // Container for 'No data' message
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 24.0,
+                            horizontal: 16.0,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 250,
+                          ), // Ensure min width
+                          child: Text(
+                            noDataMessage,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        )
+                        : _buildDataTableContent(
+                          stats: stats,
+                        ), // Build the actual DataTable
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // Builds the DataTable rows based on the stats type
+  // --- _buildDataTableContent Method (Builds the actual DataTable) ---
+  // This method remains the same, focusing on creating the columns and rows for a given stats object.
   Widget _buildDataTableContent({required dynamic stats}) {
     List<DataRow> rows = [];
     String periodLabel = 'Period';
     String periodValue = '';
+    String periodValueMq135 = '';
 
     if (stats is DailyStats) {
       periodLabel = 'Date';
-      periodValue = DateFormat('yyyy-MM-dd').format(stats.date);
+      periodValue = _formatDateDisplay(stats.date);
+      periodValueMq135 = periodValue;
       rows = _buildStatRows(
         stats.avgMq7,
         stats.maxMq7,
@@ -103,8 +229,8 @@ class StatsTable extends StatelessWidget {
       );
     } else if (stats is WeeklyStats) {
       periodLabel = 'Week';
-      periodValue =
-          '${DateFormat('dd MMM').format(stats.startDate)} - ${DateFormat('dd MMM yyyy').format(stats.endDate)}';
+      periodValue = _formatWeekDisplay(stats.startDate, stats.endDate);
+      periodValueMq135 = periodValue;
       rows = _buildStatRows(
         stats.avgMq7,
         stats.maxMq7,
@@ -115,7 +241,8 @@ class StatsTable extends StatelessWidget {
       );
     } else if (stats is MonthlyStats) {
       periodLabel = 'Month';
-      periodValue = DateFormat('MMMM yyyy').format(stats.monthDate);
+      periodValue = _formatMonthDisplay(stats.monthDate);
+      periodValueMq135 = periodValue;
       rows = _buildStatRows(
         stats.avgMq7,
         stats.maxMq7,
@@ -126,7 +253,6 @@ class StatsTable extends StatelessWidget {
       );
     }
 
-    // Add the period row at the beginning
     rows.insert(
       0,
       DataRow(
@@ -138,38 +264,28 @@ class StatsTable extends StatelessWidget {
             ),
           ),
           DataCell(Text(periodValue)),
-          DataCell(Text(periodValue)), // Repeat for consistency, or leave empty
+          DataCell(Text(periodValueMq135)),
         ],
       ),
     );
 
     return DataTable(
-      columnSpacing: 15.0, // Adjust spacing
+      // Set minimum width for the table itself? Optional. Can help prevent excessive squashing before scrolling kicks in.
+      // constraints: const BoxConstraints(minWidth: 340), // Example: Minimum width before scrolling
+      columnSpacing: 15.0,
       headingRowHeight: 35,
       dataRowMinHeight: 30,
-      dataRowMaxHeight: 40,
+      dataRowMaxHeight: 45,
       columns: const [
         DataColumn(
-          label: Expanded(
-            child: Text(
-              'Metric',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
+          label: Text('Metric', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
         DataColumn(
-          label: Expanded(
-            child: Text('MQ-7', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
+          label: Text('MQ-7', style: TextStyle(fontWeight: FontWeight.bold)),
           numeric: true,
         ),
         DataColumn(
-          label: Expanded(
-            child: Text(
-              'MQ-135',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
+          label: Text('MQ-135', style: TextStyle(fontWeight: FontWeight.bold)),
           numeric: true,
         ),
       ],
@@ -177,7 +293,7 @@ class StatsTable extends StatelessWidget {
     );
   }
 
-  // Helper to create common stat rows
+  // --- _buildStatRows Helper --- (Remains the same)
   List<DataRow> _buildStatRows(
     double avgMq7,
     double maxMq7,
