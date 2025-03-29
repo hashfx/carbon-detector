@@ -42,6 +42,29 @@ class ApiService {
     }
   }
 
+  DateTime? _parseDateTime(String timeString) {
+    if (timeString.isEmpty) return null;
+    try {
+      // Use DateTime.parse for ISO 8601 format ('...T...Z')
+      // It automatically handles the 'Z' as UTC.
+      return DateTime.parse(timeString);
+    } catch (e) {
+      // Keep a fallback for the old format just in case, but log prominently
+      try {
+        print(
+          "Warning: Parsing ISO8601 failed for '$timeString', trying 'yyyy-MM-dd HH:mm:ss'. Error: $e",
+        );
+        // Attempt to parse the previously expected format as UTC
+        return DateFormat('yyyy-MM-dd HH:mm:ss').parseUtc(timeString);
+      } catch (e2) {
+        print(
+          "Error parsing date string with fallback: '$timeString', error: $e2",
+        );
+        return null; // Return null if both parsing attempts fail
+      }
+    }
+  }
+
   DailyStats? calculateDailyStats(List<CarbonData> data) {
     if (data.isEmpty) return null;
 
