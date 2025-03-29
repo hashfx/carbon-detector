@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:carbon_counter/models/carbon_stats.dart';
 import 'package:intl/intl.dart';
@@ -9,36 +10,74 @@ class ApiService {
   ApiService(this._scriptUrl);
 
   Future<List<CarbonData>> getCarbonData() async {
-    final response = await http.get(Uri.parse(_scriptUrl));
+    try {
+      final response = await http
+          .get(Uri.parse(_scriptUrl))
+          .timeout(const Duration(seconds: 15));
 
-    if (response.statusCode == 200) {
-      final decodedData = json.decode(response.body);
+      if (response.statusCode == 200) {
+        // Decode the JSON response body
+        final decodedData = json.decode(response.body);
 
-      if (decodedData is Map &&
-          decodedData.containsKey('data') &&
-          decodedData['data'] is List) {
-        final sheetData = decodedData['data'];
-
-        return sheetData.map<CarbonData>((row) {
-          if (row is List && row.length == 3) {
-            return CarbonData(
-              time: row[0].toString(),
-              mq7: double.tryParse(row[1].toString()) ?? 0.0,
-              mq135: double.tryParse(row[2].toString()) ?? 0.0,
-            );
-          } else {
-            print("Invalid row format: $row");
-            return CarbonData(time: '', mq7: 0.0, mq135: 0.0);
+        if (decodedData is List) {
+          // Check if the list is empty or only contains the header row
+          if (decodedData.length < 2) {
+            print("API returned insufficient data (no data rows found).");
+            return []; // Return empty list if no actual data rows exist
           }
-        }).toList();
+
+          List<CarbonData> carbonDataList = [];
+          // Iterate through the list, SKIPPING the first element (header row)
+          for (var row in decodedData.skip(1)) {
+            // Validate that each row is a List and has at least 3 elements
+            if (row is List && row.length >= 3) {
+              // Attempt to parse values, providing defaults on failure
+              String timeStr = row[0]?.toString() ?? '';
+              double mq7 = double.tryParse(row[1]?.toString() ?? '0.0') ?? 0.0;
+              double mq135 =
+                  double.tryParse(row[2]?.toString() ?? '0.0') ?? 0.0;
+
+              // Basic validation: Ensure time string is not empty before adding
+              if (timeStr.isNotEmpty) {
+                carbonDataList.add(
+                  CarbonData(time: timeStr, mq7: mq7, mq135: mq135),
+                );
+              } else {
+                print("Skipping row due to empty time string: $row");
+              }
+            } else {
+              // Log if a row doesn't match the expected format (List with >= 3 items)
+              print("Invalid data row format skipped: $row");
+            }
+          }
+          // Return the populated list of CarbonData objects
+          return carbonDataList;
+        } else {
+          // Handle cases where the decoded data is not a List as expected
+          print(
+            "Invalid response format received: Expected a List, got ${decodedData.runtimeType}",
+          );
+          throw Exception('Failed to parse data: Invalid format.');
+        }
+        
       } else {
-        print("Invalid response format: $decodedData");
-        return [];
+        // Handle non-200 status codes
+        print(
+          "API request failed with status code: ${response.statusCode}, Body: ${response.body}",
+        );
+        throw Exception(
+          'Failed to load data. Status code: ${response.statusCode}',
+        );
       }
-    } else {
-      throw Exception(
-        'Failed to load data. Status code: ${response.statusCode}',
-      );
+    } on TimeoutException catch (e) {
+      print("API request timed out: $e");
+      throw Exception('Failed to load data: Request timed out.');
+    } catch (e) {
+      // Catch other potential errors (network issues, json decoding errors)
+      print("Error fetching carbon data: $e");
+      // Consider checking the type of 'e' for more specific error handling if needed
+      // if (e is FormatException) { ... }
+      throw Exception('Failed to load data: $e');
     }
   }
 
