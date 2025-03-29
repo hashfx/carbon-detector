@@ -1,4 +1,4 @@
-# carbon_counter
+# Carbon Shodhak
 
 
 ### run the project
