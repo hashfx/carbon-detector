@@ -15,4 +15,9 @@ class AppConstants {
   // Add other constants like colors, themes, text styles if needed
   // Example:
   // static const Color primaryColor = Colors.blue;
+
+  // --- FLAT IMAGE CONSTANTS ---
+
+  static const String splashScreenBackgroundImage = 'assets/images/mountain_bg.jpg';
+  static const String mainScreenBackgroundImage = 'assets/images/mountain_bg2.jpg';
 }
