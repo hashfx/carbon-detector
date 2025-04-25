@@ -1,364 +1,385 @@
 import 'dart:async';
+import 'dart:math'; // Re-added for random background selection
+import 'dart:ui'; // For ImageFilter.blur
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-// **IMPORTANT**: Ensure this import path matches your project structure.
-import 'package:carbon_counter/screens/carbon_data_screen.dart'; // Assuming this exists
+import 'package:glassmorphism/glassmorphism.dart'; // For glassmorphic effect
 
-enum EmailCheckStatus { idle, checking, exists, notFound, error }
+// **IMPORTANT**: Ensure these import paths match your project structure.
+import 'package:carbon_counter/screens/carbon_data_screen.dart';
+// Import your constants file
+import 'package:carbon_counter/utils/constants.dart'; // Corrected path based on typical structure
 
-// --- Parent Widget Consideration ---
-// ** VERY IMPORTANT FOR STATE PERSISTENCE **
-// If the parent widget containing AuthScreen rebuilds often, you ABSOLUTELY MUST
-// provide a Key to AuthScreen to prevent its state (_AuthScreenState) from being lost.
-// Example: AuthScreen(key: ValueKey('uniqueAuthScreenKey_preserveState'))
-// Failure to do this is a VERY common cause of the UI seemingly resetting
-// (e.g., showing "Sign Up" after an email check found an existing user).
-// --- End Parent Widget Consideration ---
-
+// --- AuthScreen Widget ---
 class AuthScreen extends StatefulWidget {
-  // ** VERY IMPORTANT: Add the Key parameter if needed based on parent widget behavior **
-  const AuthScreen({super.key /* required Key key */});
+  const AuthScreen({super.key});
 
   @override
   _AuthScreenState createState() => _AuthScreenState();
 }
 
 class _AuthScreenState extends State<AuthScreen> {
+  // --- Controllers & Keys ---
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  // State variables
-  String _authSubmitStatusMessage = '';
-  String _welcomeMessage = '';
-  EmailCheckStatus _emailCheckStatus = EmailCheckStatus.idle;
-  Timer? _debounceTimer;
+  // --- State Variables ---
   bool _isPasswordVisible = false;
   bool _isSubmitting = false;
-  bool _isCheckInProgress = false; // Tracks if fetchSignInMethods is running
-  String?
-  _lastCheckedEmail; // Email for which the last NON-ERROR check completed
+  String _dialogAuthErrorMessage = '';
+  String? _backgroundImagePath; // Re-added for random background
 
   // --- Logging Helper ---
   void _log(String message) {
-    // Use debugPrint for better console output handling in Flutter
     debugPrint('[AuthScreen] ${DateTime.now().toIso8601String()} $message');
   }
 
   @override
   void initState() {
     super.initState();
-    _emailController.addListener(_onEmailChanged);
-    _log(
-      "initState: Listener added. Initial State: status=$_emailCheckStatus, lastChecked=$_lastCheckedEmail",
-    );
+    _log("initState: Setting up AuthScreen.");
+    _selectRandomBackground(); // Select initial random background
+  }
+
+  // Function to select a random background image
+  void _selectRandomBackground() {
+    // Accessing the instance variable backgroundImages from AppConstants
+    // *** RECOMMENDATION: Make backgroundImages static const in AppConstants ***
+    // If static: final List<String> images = AppConstants.authBackgroundImages; (assuming you rename it)
+    // If instance (as provided):
+    final List<String> images = AppConstants().backgroundImages;
+
+    if (images.isNotEmpty) {
+      final random = Random();
+      final index = random.nextInt(images.length);
+      // Check if mounted before calling setState, especially if this could
+      // potentially be called from an async context later (though not here in initState).
+      if (mounted) {
+        setState(() {
+          _backgroundImagePath = images[index];
+          _log("Selected background image: $_backgroundImagePath");
+        });
+      }
+    } else {
+      _log(
+          "Warning: backgroundImages list in AppConstants is empty or not accessible.");
+      // Optionally set a default fallback image/color if the list is empty
+      if (mounted) {
+        setState(() {
+          _backgroundImagePath =
+              null; // Or set to a default like AppConstants.mainScreenBackgroundImage
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
-    _log("dispose: Cleaning up.");
-    _debounceTimer?.cancel();
-    _emailController.removeListener(_onEmailChanged);
+    _log("dispose: Cleaning up controllers.");
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  void _onEmailChanged() {
-    _debounceTimer?.cancel(); // Cancel any previous timer
-    final trimmedEmail = _emailController.text.trim();
-    _log(
-      "onEmailChanged: Email -> '$trimmedEmail'. Current Status=$_emailCheckStatus, Checking=$_isCheckInProgress, LastChecked=$_lastCheckedEmail",
+  // --- Dialog Authentication Logic --- (No changes needed in this section)
+  void _showAuthDialog(BuildContext context, {required String mode}) {
+    // Reset state specific to the dialog each time it opens
+    _emailController.clear();
+    _passwordController.clear();
+    _isPasswordVisible = false;
+    _dialogAuthErrorMessage = '';
+    _isSubmitting = false; // Ensure loading state is reset
+
+    _log("Showing Auth Dialog for mode: $mode");
+
+    showDialog(
+      context: context,
+      barrierDismissible: true, // Allow dismissing by tapping outside
+      builder: (BuildContext dialogContext) {
+        // Use StatefulBuilder to manage state local to the dialog
+        return StatefulBuilder(
+          builder: (stfContext, stfSetState) {
+            return AlertDialog(
+              backgroundColor: Colors.transparent, // Needed for glassmorphism
+              contentPadding:
+                  EdgeInsets.zero, // Control padding via GlassmorphicContainer
+              content: GlassmorphicContainer(
+                width: 400, // Adjust width as needed
+                // Consider making height dynamic based on content or screen size
+                height: _dialogAuthErrorMessage.isNotEmpty
+                    ? 480
+                    : 450, // Adjust height based on error msg
+                borderRadius: 20,
+                blur: 15, // Blur intensity
+                alignment: Alignment.center,
+                border: 2,
+                linearGradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Theme.of(context).colorScheme.surface.withOpacity(0.1),
+                    Theme.of(context).colorScheme.surface.withOpacity(0.2),
+                  ],
+                  stops: const [0.1, 1],
+                ),
+                borderGradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                    Theme.of(context).colorScheme.secondary.withOpacity(0.5),
+                  ],
+                ),
+                child: Stack(
+                  children: [
+                    // Close Button
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white70),
+                        onPressed: () => Navigator.of(stfContext).pop(),
+                      ),
+                    ),
+                    // Form Content
+                    Padding(
+                      padding: const EdgeInsets.all(25.0),
+                      child: Form(
+                        key: _formKey, // Use the main form key
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            Text(
+                              mode == 'signin' ? 'Sign In' : 'Sign Up',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineSmall
+                                  ?.copyWith(color: Colors.white),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 20),
+                            // Email Field
+                            TextFormField(
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              autocorrect: false,
+                              textCapitalization: TextCapitalization.none,
+                              style: const TextStyle(
+                                  color: Colors.white), // Text color
+                              decoration: InputDecoration(
+                                labelText: 'Email',
+                                labelStyle:
+                                    const TextStyle(color: Colors.white70),
+                                hintText: 'Enter your email',
+                                hintStyle:
+                                    const TextStyle(color: Colors.white54),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Colors.white.withOpacity(0.5)),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                errorBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Colors.redAccent.withOpacity(0.7)),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                focusedErrorBorder: OutlineInputBorder(
+                                  borderSide:
+                                      const BorderSide(color: Colors.redAccent),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                prefixIcon: const Icon(Icons.email_outlined,
+                                    color: Colors.white70),
+                              ),
+                              validator: (value) {
+                                final v = value?.trim() ?? '';
+                                if (v.isEmpty)
+                                  return 'Please enter your email.';
+                                if (!RegExp(
+                                        r"^[a-zA-Z0-9.+_-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]+$")
+                                    .hasMatch(v)) {
+                                  return 'Please enter a valid email address.';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 15),
+                            // Password Field
+                            TextFormField(
+                              controller: _passwordController,
+                              obscureText: !_isPasswordVisible,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                labelText: 'Password',
+                                labelStyle:
+                                    const TextStyle(color: Colors.white70),
+                                hintText: 'Enter your password',
+                                hintStyle:
+                                    const TextStyle(color: Colors.white54),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Colors.white.withOpacity(0.5)),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                errorBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Colors.redAccent.withOpacity(0.7)),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                focusedErrorBorder: OutlineInputBorder(
+                                  borderSide:
+                                      const BorderSide(color: Colors.redAccent),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                prefixIcon: const Icon(Icons.lock_outline,
+                                    color: Colors.white70),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _isPasswordVisible
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    color: Colors.white70,
+                                  ),
+                                  onPressed: _isSubmitting
+                                      ? null
+                                      : () {
+                                          // Use stfSetState to update only the dialog's state
+                                          stfSetState(() => _isPasswordVisible =
+                                              !_isPasswordVisible);
+                                        },
+                                ),
+                              ),
+                              validator: (value) {
+                                final v = value?.trim() ?? '';
+                                if (v.isEmpty)
+                                  return 'Please enter your password.';
+                                if (v.length < 6)
+                                  return 'Password must be at least 6 characters.';
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 10), // Reduced space
+                            // Error Message Area within Dialog
+                            AnimatedOpacity(
+                              opacity: _dialogAuthErrorMessage.isNotEmpty
+                                  ? 1.0
+                                  : 0.0,
+                              duration: const Duration(milliseconds: 300),
+                              child: _dialogAuthErrorMessage.isNotEmpty
+                                  ? Padding(
+                                      padding: const EdgeInsets.only(
+                                          top: 8.0, bottom: 8.0),
+                                      child: Text(
+                                        _dialogAuthErrorMessage,
+                                        style: TextStyle(
+                                          color: Colors.redAccent[
+                                              100], // Lighter red for dark bg
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    )
+                                  : const SizedBox
+                                      .shrink(), // Takes no space when hidden
+                            ),
+                            const SizedBox(height: 15), // Space before button
+                            // Submit Button
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                                textStyle: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                                backgroundColor: Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withOpacity(0.8),
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed: _isSubmitting
+                                  ? null
+                                  : () {
+                                      _submitAuthForm(
+                                          mode: mode,
+                                          dialogContext: stfContext,
+                                          dialogSetState: stfSetState);
+                                    },
+                              child: _isSubmitting
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                                Colors.white),
+                                      ),
+                                    )
+                                  : Text(
+                                      mode == 'signin' ? 'Sign In' : 'Sign Up'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
-
-    // --- **Reset State Logic** ---
-    if (trimmedEmail.isEmpty) {
-      // Only reset if the state is not already idle or if messages exist
-      if (_emailCheckStatus != EmailCheckStatus.idle ||
-          _welcomeMessage.isNotEmpty ||
-          _authSubmitStatusMessage.isNotEmpty) {
-        _log("onEmailChanged: Email is empty. RESETTING state to idle.");
-        if (mounted) {
-          // Clear password immediately when email is cleared
-          _passwordController.clear();
-          setState(() {
-            _welcomeMessage = '';
-            _authSubmitStatusMessage = '';
-            _emailCheckStatus = EmailCheckStatus.idle;
-            _isPasswordVisible = false;
-            _lastCheckedEmail = null; // Clear the last checked email
-            if (_isCheckInProgress) {
-              // This shouldn't happen if logic is sound, but as a safeguard:
-              _log(
-                "onEmailChanged: WARNING - Resetting state while _isCheckInProgress was true!",
-              );
-              _isCheckInProgress = false;
-            }
-          });
-        }
-      } else {
-        _log(
-          "onEmailChanged: Email empty, but state already idle. No reset needed.",
-        );
-      }
-      return; // Stop further processing if email is empty
-    }
-
-    // --- **Trigger New Check (via Debounce)?** ---
-    final bool isFormatValid = RegExp(
-      r"^[a-zA-Z0-9.+_-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]+$",
-    ).hasMatch(trimmedEmail);
-    // Trigger check ONLY if: format is valid, it's a NEW email compared to the last successful check, AND no check is currently running.
-    final bool isNewEmailToCheck = trimmedEmail != _lastCheckedEmail;
-    final bool shouldStartDebounce =
-        isFormatValid && isNewEmailToCheck && !_isCheckInProgress;
-
-    if (shouldStartDebounce) {
-      _log(
-        "onEmailChanged: Conditions met to start debounce for '$trimmedEmail'. [Format:$isFormatValid, New:$isNewEmailToCheck, NotChecking:${!_isCheckInProgress}]",
-      );
-      _debounceTimer = Timer(const Duration(milliseconds: 900), () {
-        // --- Inside Debounce Timer Callback ---
-        // Re-read email value WHEN TIMER FIRES, as it might have changed again
-        final emailAtDebounceTime = _emailController.text.trim();
-        _log(
-          "onEmailChanged (debounce): Timer fired. Email now: '$emailAtDebounceTime'. Checking against original: '$trimmedEmail'",
-        );
-
-        // Check if still mounted, if a check isn't already running (extra safety),
-        // and if the email is still the same valid one we intended to check.
-        if (mounted &&
-            !_isCheckInProgress &&
-            emailAtDebounceTime == trimmedEmail) {
-          // Re-validate format just in case it changed between debounce start and fire
-          if (RegExp(
-            r"^[a-zA-Z0-9.+_-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]+$",
-          ).hasMatch(emailAtDebounceTime)) {
-            _log(
-              "onEmailChanged (debounce): Triggering check for '$emailAtDebounceTime'.",
-            );
-            _checkEmailExistsDebounced(emailAtDebounceTime);
-          } else {
-            _log(
-              "onEmailChanged (debounce): Email format became invalid ('$emailAtDebounceTime') before check trigger. Aborting.",
-            );
-            // Optionally reset status here if needed, e.g., set to idle
-            if (mounted) {
-              setState(() {
-                _emailCheckStatus = EmailCheckStatus.idle;
-                _welcomeMessage = 'Invalid email format.';
-                _lastCheckedEmail =
-                    null; // Clear last checked as it's invalid now
-              });
-            }
-          }
-        } else {
-          _log(
-            "onEmailChanged (debounce): Skipping check trigger. Conditions changed: [Mounted:$mounted, NotChecking:${!_isCheckInProgress}, EmailSame:${emailAtDebounceTime == trimmedEmail}]",
-          );
-        }
-      });
-    } else {
-      _log(
-        "onEmailChanged: Conditions to start debounce NOT met. [Format:$isFormatValid, New:$isNewEmailToCheck, NotChecking:${!_isCheckInProgress}]",
-      );
-      // If format became invalid *after* a successful check, reset the status.
-      if (!isFormatValid &&
-          (_emailCheckStatus == EmailCheckStatus.exists ||
-              _emailCheckStatus == EmailCheckStatus.notFound)) {
-        _log(
-          "onEmailChanged: Email format became invalid ('$trimmedEmail') after a check result was shown. Resetting status.",
-        );
-        if (mounted) {
-          setState(() {
-            _emailCheckStatus = EmailCheckStatus.idle; // Go back to idle
-            _welcomeMessage = 'Invalid email format.';
-            _lastCheckedEmail =
-                null; // Clear last checked email because current input is invalid
-            _passwordController
-                .clear(); // Clear password if email becomes invalid
-            _isPasswordVisible = false;
-          });
-        }
-      }
-    }
   }
 
-  Future<void> _checkEmailExistsDebounced(String email) async {
-    // Double-check conditions at the start of the async operation
-    if (_isCheckInProgress || _isSubmitting) {
-      _log(
-        "checkEmailExistsDebounced: Aborted start for '$email'. Already in progress (Checking=$_isCheckInProgress, Submitting=$_isSubmitting)",
-      );
-      return;
-    }
-    // Ensure the email hasn't changed *again* since the debounce timer fired
-    if (!mounted || _emailController.text.trim() != email) {
-      _log(
-        "checkEmailExistsDebounced: Aborted start for '$email'. Component unmounted or email changed again.",
-      );
-      return;
-    }
-
-    _log(
-      "checkEmailExistsDebounced: Starting check for '$email'. Setting state to checking...",
-    );
-    // Set state SYNCHRONOUSLY before the await call
-    setState(() {
-      _emailCheckStatus = EmailCheckStatus.checking;
-      _isCheckInProgress = true;
-      _welcomeMessage = ''; // Clear previous messages
-      _authSubmitStatusMessage = '';
-      // Do NOT clear _lastCheckedEmail here. Keep it until we have a new result.
-      _log(
-        "checkEmailExistsDebounced: setState (sync) completed -> Status=checking, Checking=true",
-      );
-    });
-
-    // --- Firebase Call ---
-    EmailCheckStatus finalStatus = EmailCheckStatus.error; // Default to error
-    String finalMessage = 'Error during email check.';
-    List<String> methods = [];
-
-    try {
-      _log(
-        "checkEmailExistsDebounced: Calling Firebase fetchSignInMethodsForEmail('$email')...",
-      );
-      methods = await FirebaseAuth.instance.fetchSignInMethodsForEmail(email);
-      // **** CRITICAL LOGGING ****
-      _log(
-        "checkEmailExistsDebounced: Firebase returned methods for '$email': $methods (Count: ${methods.length})",
-      );
-
-      // Determine status based on the result
-      finalStatus =
-          methods.isNotEmpty
-              ? EmailCheckStatus.exists
-              : EmailCheckStatus.notFound;
-      finalMessage =
-          finalStatus == EmailCheckStatus.exists
-              ? '👋 Welcome back!'
-              : '✨ New user? Welcome to Carbon Shodhak!'; // Adjusted message for clarity
-      _log(
-        "checkEmailExistsDebounced: Check successful for '$email'. Determined Status: $finalStatus",
-      );
-    } on FirebaseAuthException catch (e) {
-      _log(
-        "checkEmailExistsDebounced: Firebase error for '$email'. Code: ${e.code}, Message: ${e.message}",
-      );
-      finalStatus = EmailCheckStatus.error;
-      // Provide a slightly more informative error message if possible
-      finalMessage = 'Error checking email: ${e.code}. Please try again.';
-      // Consider specific handling for network errors, etc.
-      if (e.code == 'invalid-email') {
-        finalMessage = 'The email format is invalid.';
-      } else if (e.code == 'network-request-failed') {
-        finalMessage = 'Network error. Check connection.';
-      }
-    } catch (e, s) {
-      // Catch generic errors and stack trace
-      _log(
-        "checkEmailExistsDebounced: Unexpected error for '$email': $e\nStackTrace: $s",
-      );
-      finalStatus = EmailCheckStatus.error;
-      finalMessage = 'An unexpected error occurred during email check.';
-    } finally {
-      _log(
-        "checkEmailExistsDebounced (finally): Processing check result for '$email'. Determined final status: $finalStatus",
-      );
-      if (!mounted) {
-        _log(
-          "checkEmailExistsDebounced (finally): Component unmounted for '$email' before final state update. Aborting setState.",
-        );
-        // Ensure flag is reset even if unmounted to prevent potential future blocks
-        _isCheckInProgress = false;
-        return;
-      }
-
-      // IMPORTANT: Update _lastCheckedEmail ONLY if the check concluded without error (exists or notFound)
-      final String? emailThatWasChecked =
-          (finalStatus == EmailCheckStatus.exists ||
-                  finalStatus == EmailCheckStatus.notFound)
-              ? email
-              : _lastCheckedEmail; // Keep the old value if check errored
-
-      _log(
-        "checkEmailExistsDebounced (finally): Preparing final setState for '$email'. New Status=$finalStatus, New Message='$finalMessage', New LastChecked=$emailThatWasChecked",
-      );
-
-      // Final state update
-      setState(() {
-        _emailCheckStatus = finalStatus;
-        _welcomeMessage = finalMessage;
-        _isCheckInProgress = false; // Mark check as finished
-        _lastCheckedEmail =
-            emailThatWasChecked; // Update based on success/failure
-
-        // Clear password field ONLY if the result indicates a NEW user (notFound)
-        // or if an error occurred (safer to clear). Keep it if user exists.
-        if (finalStatus == EmailCheckStatus.notFound ||
-            finalStatus == EmailCheckStatus.error) {
-          _passwordController.clear();
-          _isPasswordVisible = false; // Hide if cleared
-        }
-
-        // **** CRITICAL LOGGING ****
-        _log(
-          "checkEmailExistsDebounced (finally): setState completed. Current State: Status=$_emailCheckStatus, Checking=$_isCheckInProgress, LastChecked=$_lastCheckedEmail, WelcomeMsg='$_welcomeMessage'",
-        );
-      });
-    }
-  }
-
-  Future<void> _submitAuthForm() async {
-    _log("submitAuthForm: Attempting submission...");
+  // --- Submit Authentication --- (No changes needed in this section)
+  Future<void> _submitAuthForm(
+      {required String mode,
+      required BuildContext dialogContext,
+      required StateSetter dialogSetState}) async {
+    _log("submitAuthForm: Attempting submission for mode: $mode");
     final form = _formKey.currentState;
     if (form == null) {
       _log("submitAuthForm: Form key is null!");
       return;
     }
 
-    // Capture the state *before* validation might trigger rebuilds
-    final EmailCheckStatus statusBeforeValidation = _emailCheckStatus;
-    final String emailBeforeValidation = _emailController.text.trim();
-    _log(
-      "submitAuthForm: State before validation: Status=$statusBeforeValidation for Email='$emailBeforeValidation'",
-    );
+    // Clear previous dialog errors before validation
+    // Check if mounted before calling setState
+    if (dialogContext.mounted) {
+      dialogSetState(() {
+        _dialogAuthErrorMessage = '';
+      });
+    }
 
-    // Validate the form
     if (!form.validate()) {
       _log("submitAuthForm: Form validation failed.");
-      // Clear previous submission errors if validation fails now
-      if (_authSubmitStatusMessage.isNotEmpty) {
-        if (mounted) setState(() => _authSubmitStatusMessage = '');
+      // Ensure dialog height adjusts if error appears/disappears due to validation
+      if (dialogContext.mounted) {
+        dialogSetState(() {}); // Trigger rebuild to potentially resize dialog
       }
       return;
     }
     _log("submitAuthForm: Form validation PASSED.");
-
-    // **CRITICAL CHECK**: Re-confirm the status *after* validation, as the check might have finished
-    // during validation or user interaction. Use the status derived from the LATEST successful check.
-    // This uses the current state variable which *should* have been updated by _checkEmailExistsDebounced.
-    final EmailCheckStatus currentEmailStatus = _emailCheckStatus;
-    _log(
-      "submitAuthForm: Captured status post-validation: $currentEmailStatus",
-    );
-
-    // Ensure we only proceed if the email check has successfully completed
-    // (either exists or notFound). Don't submit if idle, checking, or error.
-    if (currentEmailStatus != EmailCheckStatus.exists &&
-        currentEmailStatus != EmailCheckStatus.notFound) {
-      _log(
-        "submitAuthForm: Submission blocked. Email status is $currentEmailStatus (Requires exists or notFound).",
-      );
-      if (mounted) {
-        setState(() {
-          _authSubmitStatusMessage =
-              "Cannot submit. Please ensure email is checked first.";
-        });
-      }
-      return;
-    }
 
     // Prevent double submission
     if (_isSubmitting) {
@@ -366,26 +387,17 @@ class _AuthScreenState extends State<AuthScreen> {
       return;
     }
 
-    _log("submitAuthForm: Proceeding with submission...");
-    if (!mounted) {
-      _log("submitAuthForm: Aborted submission. Component unmounted.");
-      return;
+    // Set submitting state using the dialog's setState
+    if (dialogContext.mounted) {
+      dialogSetState(() {
+        _isSubmitting = true;
+        _dialogAuthErrorMessage = ''; // Clear errors again just in case
+      });
     }
-
-    // Set submitting state
-    setState(() {
-      _isSubmitting = true;
-      _authSubmitStatusMessage = ''; // Clear previous errors
-    });
 
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
-
-    // Determine action based on the *current* email status
-    final bool attemptSignIn = (currentEmailStatus == EmailCheckStatus.exists);
-    _log(
-      "submitAuthForm: Action: ${attemptSignIn ? 'SIGN IN' : 'SIGN UP'} for email '$email'",
-    );
+    final bool attemptSignIn = (mode == 'signin');
 
     try {
       UserCredential userCredential;
@@ -398,462 +410,290 @@ class _AuthScreenState extends State<AuthScreen> {
         _log("submitAuthForm: Sign In SUCCESSFUL.");
       } else {
         _log(
-          "submitAuthForm: Calling Firebase createUserWithEmailAndPassword...",
+            "submitAuthForm: Calling Firebase createUserWithEmailAndPassword...");
+        userCredential =
+            await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
         );
-        userCredential = await FirebaseAuth.instance
-            .createUserWithEmailAndPassword(email: email, password: password);
         _log("submitAuthForm: Sign Up SUCCESSFUL.");
       }
 
-      // Check if component is still mounted after async operation
-      if (!mounted) {
+      // Check if dialog's context is still valid
+      if (!dialogContext.mounted) {
         _log(
-          "submitAuthForm: Component unmounted after successful Firebase call. Aborting navigation.",
-        );
-        return; // Don't proceed if unmounted
+            "submitAuthForm: Dialog context unmounted after successful Firebase call. Aborting navigation.");
+        return;
       }
 
-      // Check if user object exists
       if (userCredential.user != null) {
-        _log("submitAuthForm: User object retrieved. Navigating...");
+        _log(
+            "submitAuthForm: User object retrieved. Closing dialog and navigating...");
+        // 1. Close the dialog FIRST
+        Navigator.of(dialogContext).pop();
+        // 2. THEN Navigate to the main screen (using the original screen's context)
         _navigateToCarbonDataScreen();
       } else {
-        // This case is less common but possible
-        _log(
-          "submitAuthForm: Auth successful but user object is null. Displaying message.",
-        );
-        setState(() {
-          _authSubmitStatusMessage =
-              "Authentication successful, but failed to retrieve user data.";
-          _isSubmitting = false; // Reset submitting flag
-        });
+        _log("submitAuthForm: Auth successful but user object is null.");
+        if (dialogContext.mounted) {
+          dialogSetState(() {
+            _dialogAuthErrorMessage =
+                "Authentication successful, but failed to retrieve user data.";
+            _isSubmitting = false; // Reset submitting flag
+          });
+        }
       }
     } on FirebaseAuthException catch (e) {
       _log(
-        "submitAuthForm: Firebase Error during submission. Code: ${e.code}, Message: ${e.message}",
-      );
-      if (!mounted) {
+          "submitAuthForm: Firebase Error during submission. Code: ${e.code}, Message: ${e.message}");
+      if (!dialogContext.mounted) {
         _log(
-          "submitAuthForm: Component unmounted after Firebase error. Aborting state update.",
-        );
-        return; // Don't update state if unmounted
+            "submitAuthForm: Dialog context unmounted after Firebase error. Aborting state update.");
+        return;
       }
 
       final errorMessage = _getAuthErrorMessage(e.code);
-      final statusBeforeErrorHandling =
-          _emailCheckStatus; // For logging comparison
-
-      // --- **Error Correction Logic** ---
-      // If Firebase returns an error that contradicts our current state, correct the state.
-      EmailCheckStatus correctedStatus = statusBeforeErrorHandling;
-      String correctedWelcomeMessage = _welcomeMessage;
-      String? correctedLastChecked = _lastCheckedEmail;
-      bool stateCorrected = false;
-
-      if (attemptSignIn && _isUserNotFoundError(e.code)) {
-        // Tried to Sign In, but user doesn't exist -> Should be Sign Up
-        _log(
-          "submitAuthForm: Correcting state. Sign In failed (user not found), changing status to notFound.",
-        );
-        correctedStatus = EmailCheckStatus.notFound;
-        correctedWelcomeMessage = '✨ Email not found. Please Sign Up.';
-        // Clear last checked email as the sign-in assumption was wrong
-        // Or maybe keep it as 'email'? Let's clear it to force re-check if needed.
-        correctedLastChecked = null;
-        stateCorrected = true;
-      } else if (!attemptSignIn && _isEmailInUseError(e.code)) {
-        // Tried to Sign Up, but email already exists -> Should be Sign In
-        _log(
-          "submitAuthForm: Correcting state. Sign Up failed (email in use), changing status to exists.",
-        );
-        correctedStatus = EmailCheckStatus.exists;
-        correctedWelcomeMessage =
-            '👋 Email already registered. Please Sign In.';
-        // Set last checked email because we now know it exists
-        correctedLastChecked = email;
-        stateCorrected = true;
-      }
-
-      setState(() {
-        _authSubmitStatusMessage = errorMessage;
-        if (stateCorrected) {
-          _emailCheckStatus = correctedStatus;
-          _welcomeMessage = correctedWelcomeMessage;
-          _lastCheckedEmail = correctedLastChecked;
-          _log(
-            "submitAuthForm: State corrected after error. Before=$statusBeforeErrorHandling, After=$_emailCheckStatus, LastChecked=$_lastCheckedEmail",
-          );
-        }
+      dialogSetState(() {
+        _dialogAuthErrorMessage = errorMessage;
         _isSubmitting = false; // Reset submitting flag
       });
     } catch (e, s) {
       _log(
-        "submitAuthForm: Unexpected error during submission: $e\nStackTrace: $s",
-      );
-      if (!mounted) {
+          "submitAuthForm: Unexpected error during submission: $e\nStackTrace: $s");
+      if (!dialogContext.mounted) {
         _log(
-          "submitAuthForm: Component unmounted after unexpected error. Aborting state update.",
-        );
+            "submitAuthForm: Dialog context unmounted after unexpected error. Aborting state update.");
         return;
       }
-      setState(() {
-        _authSubmitStatusMessage =
-            'An unexpected error occurred during submission.';
+      dialogSetState(() {
+        _dialogAuthErrorMessage = 'An unexpected error occurred.';
         _isSubmitting = false; // Reset submitting flag
       });
     } finally {
-      // Ensure submitting flag is always reset if still true and mounted
-      if (mounted && _isSubmitting) {
-        _log("submitAuthForm (finally): Resetting _isSubmitting flag.");
-        setState(() => _isSubmitting = false);
+      if (dialogContext.mounted && _isSubmitting) {
+        _log(
+            "submitAuthForm (finally): Resetting _isSubmitting flag via dialogSetState.");
+        dialogSetState(() => _isSubmitting = false);
       }
     }
   }
 
-  // --- Error Message & Helpers --- (No changes needed from original)
+  // --- Error Message Helper --- (No changes needed)
   String _getAuthErrorMessage(String errorCode) {
     _log("getAuthErrorMessage: Formatting error for code: $errorCode");
-    // Using lowercase for broader matching
     switch (errorCode.toLowerCase()) {
       case 'user-not-found':
       case 'auth/user-not-found':
-        return 'No user found with this email. Please check the email or sign up.';
+        return 'No user found with this email. Please Sign Up.';
       case 'wrong-password':
       case 'auth/wrong-password':
         return 'Incorrect password. Please try again.';
-      // Firebase might return invalid-credential for both wrong email/password during sign-in
       case 'invalid-credential':
       case 'auth/invalid-credential':
         return 'Incorrect email or password. Please try again.';
       case 'email-already-in-use':
       case 'auth/email-already-in-use':
-        return 'This email is already registered. Please sign in.';
+        return 'This email is already registered. Please Sign In.';
       case 'weak-password':
       case 'auth/weak-password':
-        return 'Password is too weak (must be at least 6 characters).';
+        return 'Password is too weak (at least 6 characters).';
       case 'invalid-email':
       case 'auth/invalid-email':
         return 'The email address format is not valid.';
       case 'network-request-failed':
       case 'auth/network-request-failed':
-        return 'Network error. Please check your connection and try again.';
+        return 'Network error. Check connection and try again.';
       case 'too-many-requests':
       case 'auth/too-many-requests':
-        return 'Access temporarily disabled due to too many attempts. Please try again later.';
+        return 'Too many attempts. Try again later.';
       case 'user-disabled':
       case 'auth/user-disabled':
         return 'This user account has been disabled.';
       default:
         _log("getAuthErrorMessage: Unhandled error code: $errorCode");
-        return 'An authentication error occurred. ($errorCode)';
+        return 'An authentication error occurred ($errorCode).';
     }
   }
 
-  bool _isUserNotFoundError(String errorCode) {
-    final code = errorCode.toLowerCase();
-    // Include invalid-credential as it's often used for user not found during sign-in
-    return code == 'user-not-found' ||
-        code == 'auth/user-not-found' ||
-        code == 'invalid-credential' ||
-        code == 'auth/invalid-credential';
-  }
-
-  bool _isEmailInUseError(String errorCode) {
-    final code = errorCode.toLowerCase();
-    return code == 'email-already-in-use' ||
-        code == 'auth/email-already-in-use';
-  }
-
-  // --- Navigation --- (No changes needed)
+  // --- Navigation Helper --- (No changes needed)
   void _navigateToCarbonDataScreen() {
     if (!mounted) {
       _log("navigateToCarbonDataScreen: Aborted. Component unmounted.");
       return;
     }
     _log("Navigating to CarbonDataScreen...");
-    // Replace the current route stack with the new screen
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (context) => const CarbonDataScreen(),
-      ), // Ensure CarbonDataScreen is correctly imported/defined
+      MaterialPageRoute(builder: (context) => const CarbonDataScreen()),
       (Route<dynamic> route) => false, // Remove all previous routes
     );
   }
 
-  // --- Build Method ---
+  // --- Build Method (Landing Page) ---
   @override
   Widget build(BuildContext context) {
-    // Capture state at the beginning of the build method for consistency within this build pass
-    final EmailCheckStatus currentStatus = _emailCheckStatus;
-    final bool currentlyChecking = _isCheckInProgress;
-    final bool currentlySubmitting = _isSubmitting;
-
-    // **** CRITICAL LOGGING: Log state every time build runs ****
     _log(
-      "build: UI Rebuilding. Status=$currentStatus, Checking=$currentlyChecking, Submitting=$currentlySubmitting, LastChecked=$_lastCheckedEmail, WelcomeMsg='$_welcomeMessage', AuthMsg='$_authSubmitStatusMessage'",
-    );
-
-    // Determine UI visibility and enabled states based on captured state
-    final bool showSubmitWidgets =
-        (currentStatus == EmailCheckStatus.exists ||
-            currentStatus == EmailCheckStatus.notFound);
-    final bool enableFields =
-        !currentlyChecking &&
-        !currentlySubmitting; // Email field enabled when not checking AND not submitting
-    final bool enableSubmitButton =
-        showSubmitWidgets &&
-        !currentlySubmitting; // Submit button enabled only when status is known AND not submitting
-
-    // Determine button text defensively based on the status that allows submission
-    String buttonText;
-    if (currentStatus == EmailCheckStatus.exists) {
-      buttonText = 'Sign In';
-    } else if (currentStatus == EmailCheckStatus.notFound) {
-      buttonText = 'Sign Up';
-    } else {
-      // Fallback text for states where the button *shouldn't* be active anyway
-      // Defaulting to 'Sign Up' might be less confusing than an empty/weird state
-      buttonText = 'Sign Up';
-      _log(
-        "build: Button text set to fallback '$buttonText' because status is $currentStatus",
-      );
-    }
-    _log(
-      "build: Determined Button Text = '$buttonText' based on Status=$currentStatus. Submit Enabled=$enableSubmitButton",
-    );
+        "build: Rebuilding AuthScreen landing page. Background: $_backgroundImagePath");
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Carbon शोधक Authentication'),
-        backgroundColor:
-            Theme.of(context).colorScheme.inversePrimary, // Example styling
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          // Limit width for better appearance on large screens
-          constraints: const BoxConstraints(maxWidth: 450),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  // --- Welcome Message Area ---
-                  Container(
-                    constraints: const BoxConstraints(
-                      minHeight: 40,
-                    ), // Ensure space even when empty
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.only(bottom: 15.0),
-                    child:
-                        _welcomeMessage.isNotEmpty
-                            ? Text(
-                              _welcomeMessage,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: _getWelcomeMessageColor(
-                                  currentStatus,
-                                ), // Dynamic color
-                              ),
-                              textAlign: TextAlign.center,
-                            )
-                            : const SizedBox(
-                              height: 1,
-                            ), // Minimal space holder if no message
-                  ),
+      body: Stack(
+        children: [
+          // Background Image
+          if (_backgroundImagePath != null)
+            Positioned.fill(
+              child: Image.asset(
+                _backgroundImagePath!, // Use the state variable
+                key: ValueKey(
+                    _backgroundImagePath), // Add key to force image reload on change
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  _log(
+                      "Error loading background image: $_backgroundImagePath. Error: $error");
+                  return Container(
+                      color: Colors.blueGrey[900]); // Darker fallback
+                },
+              ),
+            )
+          else
+            // Fallback if no image path is set or list was empty
+            Container(color: Colors.blueGrey[900]), // Darker fallback
 
-                  // --- Email Field ---
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    autocorrect: false,
-                    textCapitalization: TextCapitalization.none,
-                    enabled: enableFields, // Use combined enable flag
-                    decoration: InputDecoration(
-                      labelText: 'Email',
-                      hintText: 'Enter your email address',
-                      border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      // Show loading indicator only when actively checking
-                      suffixIcon:
-                          currentlyChecking
-                              ? const Padding(
-                                padding: EdgeInsets.all(10.0),
-                                child: SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                  ),
-                                ),
-                              )
-                              : null, // No icon otherwise
-                    ),
-                    validator: (value) {
-                      final v = value?.trim() ?? '';
-                      if (v.isEmpty) return 'Please enter your email.';
-                      if (!RegExp(
-                        r"^[a-zA-Z0-9.+_-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]+$",
-                      ).hasMatch(v)) {
-                        return 'Please enter a valid email address.';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 15),
-
-                  // --- Password & Submit Area (Animated) ---
-                  // Use AnimatedOpacity + Visibility to smoothly show/hide
-                  AnimatedOpacity(
-                    opacity: showSubmitWidgets ? 1.0 : 0.0,
-                    duration: const Duration(
-                      milliseconds: 400,
-                    ), // Slightly longer duration
-                    child: Visibility(
-                      // Use maintainState=true to keep the state (like password) even when hidden
-                      visible: showSubmitWidgets,
-                      maintainState: true,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // --- Password Field ---
-                          TextFormField(
-                            controller: _passwordController,
-                            obscureText: !_isPasswordVisible,
-                            // Only enable if not submitting (even if fields above are disabled during check)
-                            enabled: !currentlySubmitting,
-                            decoration: InputDecoration(
-                              labelText: 'Password',
-                              border: const OutlineInputBorder(),
-                              prefixIcon: const Icon(Icons.lock_outline),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _isPasswordVisible
-                                      ? Icons.visibility_off_outlined
-                                      : Icons.visibility_outlined,
-                                ),
-                                // Disable toggle button while submitting
-                                onPressed:
-                                    currentlySubmitting
-                                        ? null
-                                        : () {
-                                          // Ensure mounted check before setState
-                                          if (mounted) {
-                                            setState(
-                                              () =>
-                                                  _isPasswordVisible =
-                                                      !_isPasswordVisible,
-                                            );
-                                          }
-                                        },
-                              ),
-                            ),
-                            validator: (value) {
-                              // Only validate password if the submit widgets are supposed to be shown
-                              if (showSubmitWidgets) {
-                                final v = value?.trim() ?? '';
-                                if (v.isEmpty)
-                                  return 'Please enter your password.';
-                                if (v.length < 6)
-                                  return 'Password must be at least 6 characters.';
-                              }
-                              return null; // No error if widgets aren't shown
-                            },
-                            // Allow submitting from keyboard action
-                            onFieldSubmitted: (_) {
-                              if (enableSubmitButton) _submitAuthForm();
-                            },
-                          ),
-                          const SizedBox(height: 25),
-
-                          // --- Submit Button ---
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              textStyle: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              // Consider adding backgroundColor based on theme
-                              // backgroundColor: Theme.of(context).colorScheme.primary,
-                              // foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                            ),
-                            // Use the combined enable flag
-                            onPressed:
-                                enableSubmitButton ? _submitAuthForm : null,
-                            child:
-                                currentlySubmitting
-                                    ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.5,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
-                                            ), // Assuming button bg is dark
-                                      ),
-                                    )
-                                    : Text(
-                                      buttonText,
-                                    ), // Use the determined button text
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // --- Authentication Error Message Area ---
-                  Container(
-                    constraints: const BoxConstraints(
-                      minHeight: 40,
-                    ), // Ensure space
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.only(top: 20.0),
-                    child:
-                        _authSubmitStatusMessage.isNotEmpty
-                            ? Text(
-                              _authSubmitStatusMessage,
-                              style: const TextStyle(
-                                color:
-                                    Colors
-                                        .redAccent, // Use a distinct error color
-                                fontWeight: FontWeight.w500,
-                              ),
-                              textAlign: TextAlign.center,
-                            )
-                            : const SizedBox(height: 1), // Minimal space holder
-                  ),
+          // Gradient Overlay
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(0.1),
+                  Colors.black.withOpacity(0.5),
+                  Colors.black.withOpacity(0.7),
                 ],
+                stops: const [0.0, 0.5, 1.0],
               ),
             ),
           ),
-        ),
+
+          // Centered Content
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppConstants.screenPadding * 2),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                    maxWidth: 550), // Slightly wider max width
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  // Removed crossAxisAlignment: CrossAxisAlignment.stretch
+                  children: <Widget>[
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.1),
+                    // Top Text Container
+                    Container(
+                      padding:
+                          const EdgeInsets.all(AppConstants.sectionSpacing),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Welcome! Track your carbon footprint and contribute to a greener planet.',
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Colors.white.withOpacity(0.95),
+                                  height: 1.4,
+                                ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: AppConstants.sectionSpacing * 2.5),
+
+                    // --- MODIFIED BUTTONS SECTION ---
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment
+                          .center, // Center the buttons horizontally
+                      // mainAxisSize: MainAxisSize.min, // Let row take minimum space (might not be needed if centered)
+                      children: [
+                        // Sign Up Button
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                              // Padding adjusted for smaller size
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 14),
+                              textStyle: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight:
+                                      FontWeight.bold), // Slightly smaller font
+                              backgroundColor: Theme.of(context)
+                                  .colorScheme
+                                  .secondary
+                                  .withOpacity(0.9),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30))),
+                          onPressed: () {
+                            _showAuthDialog(context, mode: 'signup');
+                          },
+                          child: const Text('Sign Up'),
+                        ),
+
+                        // Gap between buttons
+                        const SizedBox(
+                            width: AppConstants.itemSpacing *
+                                2), // Use constant for gap
+
+                        // Sign In Button
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                              // Padding adjusted for smaller size
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 14),
+                              textStyle: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight:
+                                      FontWeight.bold), // Slightly smaller font
+                              backgroundColor: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withOpacity(0.9),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30))),
+                          onPressed: () {
+                            _showAuthDialog(context, mode: 'signin');
+                          },
+                          child: const Text('Sign In'),
+                        ),
+                      ],
+                    ),
+                    // --- END OF MODIFIED BUTTONS SECTION ---
+
+                    const SizedBox(height: AppConstants.sectionSpacing * 2.5),
+
+                    // Bottom Text Container
+                    Container(
+                      padding:
+                          const EdgeInsets.all(AppConstants.sectionSpacing),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Join our community today and make a difference, one step at a time.',
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Colors.white.withOpacity(0.95),
+                                  height: 1.4,
+                                ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.05),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
-  }
-
-  // Helper function for welcome message color (No changes needed)
-  Color _getWelcomeMessageColor(EmailCheckStatus status) {
-    switch (status) {
-      case EmailCheckStatus.exists:
-        return Theme.of(
-          context,
-        ).colorScheme.primary; // Theme primary for existing
-      case EmailCheckStatus.notFound:
-        return Colors.green.shade700; // Green for new user welcome
-      case EmailCheckStatus.error:
-        return Theme.of(context).colorScheme.error; // Theme error for errors
-      case EmailCheckStatus.checking:
-        return Theme.of(context).textTheme.bodySmall?.color ??
-            Colors.grey; // Muted while checking
-      case EmailCheckStatus.idle:
-      default:
-        return Theme.of(context).textTheme.bodyLarge?.color ??
-            Colors.black; // Default text color
-    }
   }
 }
