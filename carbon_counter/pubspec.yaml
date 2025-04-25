@@ -16,6 +16,7 @@ dependencies:
   intl: ^0.18.1
   timezone: ^0.10.0
   fl_chart: ^0.68.0
+  glassmorphism: ^3.0.0
 
 dev_dependencies:
   flutter_test:
