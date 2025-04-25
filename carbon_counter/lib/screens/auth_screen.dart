@@ -9,8 +9,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import 'package:carbon_counter/screens/carbon_data_screen.dart';
 import 'package:carbon_counter/utils/constants.dart';
-// Import the new legal content widget file
-import 'package:carbon_counter/widgets/legal_content.dart'; // Adjust path if needed
+import 'package:carbon_counter/widgets/legal_content.dart'; // Assuming this path is correct
 
 // --- AuthScreen Widget ---
 class AuthScreen extends StatefulWidget {
@@ -21,7 +20,7 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  // Controllers, Keys, State Variables... (Keep these as they were)
+  // --- Controllers, Keys, State Variables ---
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -29,6 +28,10 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isSubmitting = false;
   String _dialogAuthErrorMessage = '';
   String? _backgroundImagePath;
+
+  // --- State for button press effect ---
+  bool _isSignInPressed = false; // For retro button state
+  bool _isSignUpPressed = false; // For retro button state
 
   // --- Logging Helper ---
   void _log(String message) {
@@ -59,7 +62,10 @@ class _AuthScreenState extends State<AuthScreen> {
           _log("Selected background image: $_backgroundImagePath");
         });
       }
-    } else {/* ... handle empty list ... */}
+    } else {
+      _log("Warning: backgroundImages list empty.");
+      if (mounted) setState(() => _backgroundImagePath = null);
+    }
   }
 
   @override
@@ -70,25 +76,24 @@ class _AuthScreenState extends State<AuthScreen> {
     super.dispose();
   }
 
-  // --- Dialog Authentication Logic --- (_showAuthDialog, _submitAuthForm, _getAuthErrorMessage, _navigateToCarbonDataScreen)
-  // --- KEEP THESE FUNCTIONS EXACTLY AS THEY WERE IN THE PREVIOUS VERSION ---
-  // ... (Code for _showAuthDialog) ...
+  // --- Dialog Authentication Logic ---
+  // --- KEEP _showAuthDialog, _submitAuthForm, _getAuthErrorMessage, ---
+  // --- _navigateToCarbonDataScreen, _showLegalInfo, _showDraggableBottomSheet, ---
+  // --- _showCenteredDialog EXACTLY AS THEY WERE IN THE ORIGINAL CODE ---
+  // ... (Paste your existing dialog/auth/legal functions here - NO CHANGES NEEDED) ...
   void _showAuthDialog(BuildContext context, {required String mode}) {
     _emailController.clear();
     _passwordController.clear();
     _isPasswordVisible = false;
     _dialogAuthErrorMessage = '';
     _isSubmitting = false;
-
     _log("Showing Auth Dialog for mode: $mode");
-
     showDialog(
       context: context,
       barrierDismissible: true,
       builder: (BuildContext dialogContext) {
         return StatefulBuilder(
           builder: (stfContext, stfSetState) {
-            // Simple animation for dialog content appearance
             return Animate(
               effects: const [
                 FadeEffect(duration: Duration(milliseconds: 300)),
@@ -108,8 +113,8 @@ class _AuthScreenState extends State<AuthScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Theme.of(context).colorScheme.surface.withOpacity(0.1),
-                      Theme.of(context).colorScheme.surface.withOpacity(0.2),
+                      Theme.of(context).colorScheme.surface.withValues(alpha: 0.1),
+                      Theme.of(context).colorScheme.surface.withValues(alpha: 0.2),
                     ],
                     stops: const [0.1, 1],
                   ),
@@ -117,8 +122,8 @@ class _AuthScreenState extends State<AuthScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Theme.of(context).colorScheme.primary.withOpacity(0.5),
-                      Theme.of(context).colorScheme.secondary.withOpacity(0.5),
+                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                      Theme.of(context).colorScheme.secondary.withValues(alpha: 0.5),
                     ],
                   ),
                   child: Stack(
@@ -150,7 +155,6 @@ class _AuthScreenState extends State<AuthScreen> {
                               const SizedBox(height: 20),
                               TextFormField(
                                 controller: _emailController,
-                                /* ... email field details ... */
                                 keyboardType: TextInputType.emailAddress,
                                 autocorrect: false,
                                 textCapitalization: TextCapitalization.none,
@@ -164,7 +168,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                       const TextStyle(color: Colors.white54),
                                   enabledBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
-                                          color: Colors.white.withOpacity(0.5)),
+                                          color: Colors.white.withValues(alpha: 0.5)),
                                       borderRadius: BorderRadius.circular(12)),
                                   focusedBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
@@ -175,7 +179,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   errorBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
                                           color: Colors.redAccent
-                                              .withOpacity(0.7)),
+                                              .withValues(alpha: 0.7)),
                                       borderRadius: BorderRadius.circular(12)),
                                   focusedErrorBorder: OutlineInputBorder(
                                       borderSide: const BorderSide(
@@ -185,14 +189,15 @@ class _AuthScreenState extends State<AuthScreen> {
                                       color: Colors.white70),
                                 ),
                                 validator: (value) {
-                                  /* ... validator ... */ final v =
-                                      value?.trim() ?? '';
-                                  if (v.isEmpty)
+                                  final v = value?.trim() ?? '';
+                                  if (v.isEmpty) {
                                     return 'Please enter your email.';
+                                  }
                                   if (!RegExp(
                                           r"^[a-zA-Z0-9.+_-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]+$")
-                                      .hasMatch(v))
+                                      .hasMatch(v)) {
                                     return 'Please enter a valid email address.';
+                                  }
                                   return null;
                                 },
                               ),
@@ -200,7 +205,6 @@ class _AuthScreenState extends State<AuthScreen> {
                               TextFormField(
                                 controller: _passwordController,
                                 obscureText: !_isPasswordVisible,
-                                /* ... password field details ... */
                                 style: const TextStyle(color: Colors.white),
                                 decoration: InputDecoration(
                                   labelText: 'Password',
@@ -211,7 +215,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                       const TextStyle(color: Colors.white54),
                                   enabledBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
-                                          color: Colors.white.withOpacity(0.5)),
+                                          color: Colors.white.withValues(alpha: 0.5)),
                                       borderRadius: BorderRadius.circular(12)),
                                   focusedBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
@@ -222,7 +226,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   errorBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
                                           color: Colors.redAccent
-                                              .withOpacity(0.7)),
+                                              .withValues(alpha: 0.7)),
                                       borderRadius: BorderRadius.circular(12)),
                                   focusedErrorBorder: OutlineInputBorder(
                                       borderSide: const BorderSide(
@@ -244,21 +248,21 @@ class _AuthScreenState extends State<AuthScreen> {
                                   ),
                                 ),
                                 validator: (value) {
-                                  /* ... validator ... */ final v =
-                                      value?.trim() ?? '';
-                                  if (v.isEmpty)
+                                  final v = value?.trim() ?? '';
+                                  if (v.isEmpty) {
                                     return 'Please enter your password.';
-                                  if (v.length < 6)
+                                  }
+                                  if (v.length < 6) {
                                     return 'Password must be at least 6 characters.';
+                                  }
                                   return null;
                                 },
                               ),
                               const SizedBox(height: 10),
                               AnimatedOpacity(
-                                /* ... error message ... */ opacity:
-                                    _dialogAuthErrorMessage.isNotEmpty
-                                        ? 1.0
-                                        : 0.0,
+                                opacity: _dialogAuthErrorMessage.isNotEmpty
+                                    ? 1.0
+                                    : 0.0,
                                 duration: const Duration(milliseconds: 300),
                                 child: _dialogAuthErrorMessage.isNotEmpty
                                     ? Padding(
@@ -276,8 +280,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               ),
                               const SizedBox(height: 15),
                               ElevatedButton(
-                                /* ... submit button ... */ style:
-                                    ElevatedButton.styleFrom(
+                                style: ElevatedButton.styleFrom(
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 14),
                                   textStyle: const TextStyle(
@@ -288,7 +291,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   backgroundColor: Theme.of(context)
                                       .colorScheme
                                       .primary
-                                      .withOpacity(0.8),
+                                      .withValues(alpha: 0.8),
                                   foregroundColor: Colors.white,
                                 ),
                                 onPressed: _isSubmitting
@@ -325,7 +328,6 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  // ... (Code for _submitAuthForm) ...
   Future<void> _submitAuthForm(
       {required String mode,
       required BuildContext dialogContext,
@@ -396,10 +398,8 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  // ... (Code for _getAuthErrorMessage) ...
   String _getAuthErrorMessage(String errorCode) {
-    /* ... error messages ... */ _log(
-        "getAuthErrorMessage: Formatting error for code: $errorCode");
+    _log("getAuthErrorMessage: Formatting error for code: $errorCode");
     switch (errorCode.toLowerCase()) {
       case 'user-not-found':
       case 'auth/user-not-found':
@@ -434,7 +434,6 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  // ... (Code for _navigateToCarbonDataScreen) ...
   void _navigateToCarbonDataScreen() {
     if (!mounted) return;
     _log("Navigating to CarbonDataScreen...");
@@ -444,11 +443,9 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  // --- NEW: Helper to show legal info (Decides Dialog vs Bottom Sheet) ---
   void _showLegalInfo(BuildContext context, String type) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 650; // Adjusted breakpoint slightly
-
+    final isSmallScreen = screenWidth < 650;
     if (isSmallScreen) {
       _showDraggableBottomSheet(context, type);
     } else {
@@ -456,37 +453,32 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  // --- NEW: Draggable Bottom Sheet Implementation ---
   void _showDraggableBottomSheet(BuildContext context, String type) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Important for flexible height
+      isScrollControlled: true,
       enableDrag: true,
-      backgroundColor:
-          Colors.transparent, // Sheet background is handled by inner container
+      backgroundColor: Colors.transparent,
       builder: (BuildContext sheetContext) {
         return DraggableScrollableSheet(
-          initialChildSize: 0.7, // Start at 70% height
-          minChildSize: 0.3, // Allow dragging down to 30%
-          maxChildSize: 0.9, // Allow dragging up to 90%
+          initialChildSize: 0.7,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
           expand: false,
           builder: (BuildContext _, ScrollController scrollController) {
             return Container(
               decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .surface, // Or use a slightly different color
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius:
                       const BorderRadius.vertical(top: Radius.circular(20)),
                   boxShadow: [
                     BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         spreadRadius: 2,
                         blurRadius: 10)
                   ]),
               child: Column(
                 children: [
-                  // Grab Handle
                   Container(
                     width: 40,
                     height: 5,
@@ -495,16 +487,12 @@ class _AuthScreenState extends State<AuthScreen> {
                         color: Colors.grey[400],
                         borderRadius: BorderRadius.circular(10)),
                   ),
-                  // Content Area
                   Expanded(
                     child: ListView(
-                      // Use ListView for scrolling content
-                      controller:
-                          scrollController, // Link controller for dragging
+                      controller: scrollController,
                       padding: const EdgeInsets.only(
                           left: 20, right: 20, bottom: 20),
-                      children: getLegalContentWidgets(
-                          sheetContext, type), // Get content from separate file
+                      children: getLegalContentWidgets(sheetContext, type),
                     ),
                   ),
                 ],
@@ -516,7 +504,6 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  // --- NEW: Centered Dialog Implementation ---
   void _showCenteredDialog(BuildContext context, String type) {
     showDialog(
       context: context,
@@ -524,52 +511,38 @@ class _AuthScreenState extends State<AuthScreen> {
         return AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          titlePadding:
-              const EdgeInsets.fromLTRB(20, 20, 10, 0), // Adjust padding
+          titlePadding: const EdgeInsets.fromLTRB(20, 20, 10, 0),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          backgroundColor:
-              Theme.of(context).dialogBackgroundColor, // Use theme color
-          // Constrain the dialog size on larger screens
+          backgroundColor: Theme.of(context).dialogBackgroundColor,
           insetPadding: EdgeInsets.symmetric(
-              horizontal: MediaQuery.of(context).size.width *
-                  0.15, // 15% margin on each side
-              vertical: MediaQuery.of(context).size.height *
-                  0.1 // 10% margin top/bottom
-              ),
+              horizontal: MediaQuery.of(context).size.width * 0.15,
+              vertical: MediaQuery.of(context).size.height * 0.1),
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Title is generated within getLegalContentWidgets now, so we can omit explicit title here
-              // Text(type == 'privacy' ? 'Privacy Policy' : 'Terms of Service'),
-              // Instead use a flexible spacer if needed, or remove if title in content is enough
-              const Spacer(), // Pushes close button to the right
+              // Title text removed to match style, assuming getLegalContentWidgets adds title
+              const Spacer(),
               IconButton(
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.of(dialogContext).pop(),
                 tooltip: 'Close',
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(), // Remove default padding
+                constraints: const BoxConstraints(),
               ),
             ],
           ),
           content: SizedBox(
-            // Ensures content tries to fill available dialog space
-            width: double.maxFinite, // Use available width within constraints
+            width: double.maxFinite,
             child: SingleChildScrollView(
-              // Make content scrollable
               child: Column(
-                mainAxisSize: MainAxisSize
-                    .min, // Column takes minimum needed vertical space
-                crossAxisAlignment:
-                    CrossAxisAlignment.start, // Align text to start
-                children: getLegalContentWidgets(
-                    dialogContext, type), // Get content from separate file
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: getLegalContentWidgets(dialogContext, type),
               ),
             ),
           ),
           actions: <Widget>[
-            // Optional: Add close button in actions as well/instead
             TextButton(
               child: const Text('Close'),
               onPressed: () {
@@ -581,6 +554,7 @@ class _AuthScreenState extends State<AuthScreen> {
       },
     );
   }
+  // --- End of Dialog/Auth/Legal functions ---
 
   // --- Build Method (Landing Page) ---
   @override
@@ -589,7 +563,98 @@ class _AuthScreenState extends State<AuthScreen> {
         "build: Rebuilding AuthScreen landing page. Background: $_backgroundImagePath");
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    final isSmallScreen = screenWidth < 650; // Using adjusted breakpoint
+    final isSmallScreen = screenWidth < 650;
+    final theme = Theme.of(context); // Get theme data once
+
+    // --- NEW: Define styles for the RETRO button ---
+    final double buttonHeight = isSmallScreen ? 52 : 58; // Slightly taller
+    final double borderRadiusValue = 12.0; // Less rounded for classic feel
+    final borderRadius = BorderRadius.circular(borderRadiusValue);
+    final textStyle = TextStyle(
+      fontSize: isSmallScreen ? 15 : 17,
+      fontWeight: FontWeight.bold,
+      color: Colors.white,
+      shadows: [
+        // Subtle text shadow for better readability on texture
+        Shadow(
+          offset: Offset(1.0, 1.0),
+          blurRadius: 2.0,
+          color: Colors.black.withValues(alpha: 0.5),
+        ),
+      ],
+    );
+
+    // --- Decoration for the raised button look ---
+    BoxDecoration raisedDecoration(bool isHalfPressed) {
+      return BoxDecoration(
+          borderRadius: borderRadius,
+          image: const DecorationImage(
+            image:
+                AssetImage("assets/textures/wood_texture.jpeg"), // Your texture
+            fit: BoxFit.cover,
+          ),
+          boxShadow: isHalfPressed
+              ? []
+              : [
+                  // Remove shadows when pressed
+                  // Outer dark shadow (bottom right)
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    offset: const Offset(3, 3),
+                    blurRadius: 5,
+                    spreadRadius: 1,
+                  ),
+                  // Inner light shadow (top left) - subtle highlight
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    offset: const Offset(-2, -2),
+                    blurRadius: 3,
+                    spreadRadius: 0,
+                  ),
+                ],
+          border: Border.all(
+            // Add a subtle border
+            color: Colors.black.withValues(alpha: 0.2),
+            width: 0.5,
+          ));
+    }
+
+    // --- Decoration for the depressed button look ---
+    // Uses an inner shadow effect via Gradient
+    BoxDecoration depressedDecoration() {
+      return BoxDecoration(
+          borderRadius: borderRadius,
+          image: DecorationImage(
+            // Keep the image
+            image: const AssetImage("assets/textures/wood_texture.jpg"),
+            fit: BoxFit.cover,
+            // REDUCED darkening effect when pressed
+            colorFilter: ColorFilter.mode(
+                // Colors.black38, // Original
+                Colors.black
+                    .withValues(alpha: 0.15), // Significantly less dark overlay
+                BlendMode.darken),
+          ),
+          // Inner shadow effect using gradient - Make shadow slightly less intense
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              // Colors.black.withValues(alpha: 0.4), // Original darker top-left
+              Colors.black.withValues(alpha: 0.25), // Lighter top-left shadow
+              Colors.transparent,
+              Colors.transparent,
+              // Colors.white.withValues(alpha: 0.1), // Original lighter bottom-right
+              Colors.white
+                  .withValues(alpha: 0.08), // Slightly subtler bottom-right highlight
+            ],
+            stops: const [0.0, 0.3, 0.7, 1.0],
+          ),
+          border: Border.all(
+              color: Colors.black.withValues(alpha: 0.5),
+            width: 1.0,
+          ));
+    }
 
     return Scaffold(
       body: Stack(
@@ -627,9 +692,9 @@ class _AuthScreenState extends State<AuthScreen> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.15),
-                  Colors.black.withOpacity(0.55),
-                  Colors.black.withOpacity(0.75),
+                  Colors.black.withValues(alpha: 0.15),
+                  Colors.black.withValues(alpha: 0.55),
+                  Colors.black.withValues(alpha: 0.75),
                 ],
                 stops: const [0.0, 0.5, 1.0],
               ),
@@ -650,7 +715,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     SizedBox(height: screenHeight * 0.05),
-                    // --- Logo --- (Keep as is)
+                    // --- Logo, App Name, Tagline --- (Keep as is)
                     Image.asset(
                       'assets/logos/app_logo.png',
                       height: isSmallScreen ? 65 : 85,
@@ -661,21 +726,17 @@ class _AuthScreenState extends State<AuthScreen> {
                         begin: -0.3,
                         duration: 500.ms,
                         curve: Curves.easeOutCubic),
-                    // --- App Name --- (Keep as is)
                     Padding(
                       padding:
                           const EdgeInsets.only(top: AppConstants.itemSpacing),
                       child: Text(
                         'Carbon Shodhak',
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineMedium
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: isSmallScreen ? 26 : 32,
-                              letterSpacing: 0.5,
-                            ),
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: isSmallScreen ? 26 : 32,
+                          letterSpacing: 0.5,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ).animate().fadeIn(delay: 150.ms, duration: 600.ms).slideY(
@@ -683,18 +744,16 @@ class _AuthScreenState extends State<AuthScreen> {
                         delay: 150.ms,
                         duration: 500.ms,
                         curve: Curves.easeOutCubic),
-                    // --- Tagline --- (Keep as is)
                     Padding(
                       padding: const EdgeInsets.only(
                           top: AppConstants.itemSpacing * 0.75,
                           bottom: AppConstants.sectionSpacing),
                       child: Text(
                         'Track Your Footprint, Grow a Greener Future.',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: Colors.white.withOpacity(0.85),
-                                  fontSize: isSmallScreen ? 15 : 17,
-                                ),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.85),
+                          fontSize: isSmallScreen ? 15 : 17,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ).animate().fadeIn(delay: 300.ms, duration: 600.ms).slideY(
@@ -702,15 +761,11 @@ class _AuthScreenState extends State<AuthScreen> {
                         delay: 300.ms,
                         duration: 500.ms,
                         curve: Curves.easeOutCubic),
-
                     SizedBox(height: screenHeight * 0.05),
-
-                    // --- Top Text Block (Headline) --- MODIFIED TO USE LOGO ---
+                    // --- Top Text Block (Headline) --- (Keep as is)
                     _buildInfoBlock(
                       context,
-                      // icon: Icons.eco_outlined, // Commented out icon
-                      logoPath:
-                          'assets/logos/app_logo.png', // <<< YOUR LOGO PATH HERE AGAIN
+                      logoPath: 'assets/logos/app_logo.png',
                       text:
                           'Understand & Reduce Your Carbon Impact with Personalized Insights.',
                       isSmallScreen: isSmallScreen,
@@ -722,68 +777,166 @@ class _AuthScreenState extends State<AuthScreen> {
 
                     const SizedBox(height: AppConstants.sectionSpacing * 2.5),
 
-                    // --- BUTTONS SECTION --- (Keep as is)
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: AppConstants.itemSpacing * 2,
-                      runSpacing: AppConstants.itemSpacing * 1.5,
-                      children: [
-                        ElevatedButton.icon(
-                          icon: const Icon(Icons.person_add_alt_1_outlined,
-                              size: 18),
-                          label: const Text('Sign Up'),
-                          style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: isSmallScreen ? 18 : 26,
-                                  vertical: 14),
-                              textStyle: TextStyle(
-                                  fontSize: isSmallScreen ? 15 : 16,
-                                  fontWeight: FontWeight.bold),
-                              backgroundColor: Theme.of(context)
-                                  .colorScheme
-                                  .secondary
-                                  .withOpacity(0.9),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30))),
-                          onPressed: () =>
-                              _showAuthDialog(context, mode: 'signup'),
+                    // *********************************************
+                    // ******** MODIFIED BUTTON SECTION START ********
+                    // *********************************************
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                          maxWidth:
+                              isSmallScreen ? 300 : 340), // Adjusted width
+                      child: ClipRRect(
+                        // Use ClipRRect for border radius clipping
+                        borderRadius: borderRadius,
+                        child: SizedBox(
+                          height: buttonHeight,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // --- Sign In Half ---
+                              Expanded(
+                                child: GestureDetector(
+                                  // Use GestureDetector for press states
+                                  onTapDown: (_) =>
+                                      setState(() => _isSignInPressed = true),
+                                  onTapUp: (_) {
+                                    setState(() => _isSignInPressed = false);
+                                    // Delay slightly before showing dialog for visual feedback
+                                    Future.delayed(
+                                        const Duration(milliseconds: 100), () {
+                                      if (mounted)
+                                        _showAuthDialog(context,
+                                            mode: 'signin');
+                                    });
+                                  },
+                                  onTapCancel: () =>
+                                      setState(() => _isSignInPressed = false),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(
+                                        milliseconds: 120), // Faster animation
+                                    curve: Curves
+                                        .fastOutSlowIn, // Nice curve for press
+                                    // Apply raised or depressed decoration based on state
+                                    decoration: _isSignInPressed
+                                        ? depressedDecoration()
+                                        : raisedDecoration(_isSignInPressed),
+                                    // Add slight translation when pressed
+                                    transform: _isSignInPressed
+                                        ? Matrix4.translationValues(
+                                            1.5, 1.5, 0.0)
+                                        : Matrix4.identity(),
+                                    transformAlignment: Alignment.center,
+                                    alignment: Alignment.center,
+                                    // Content slightly padded from edges
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 5),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.login_outlined,
+                                          size: isSmallScreen ? 18 : 20,
+                                          color: Colors.white,
+                                          shadows: textStyle
+                                              .shadows, // Use same shadow for icon
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Flexible(
+                                          // Use Flexible for text wrapping if needed
+                                          child: Text(
+                                            'Sign In',
+                                            style: textStyle,
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              // --- Divider ---
+                              Container(
+                                width: 1.5, // Divider thickness
+                                color: Colors.black
+                                    .withValues(alpha: 0.4), // Darker divider
+                              ),
+
+                              // --- Sign Up Half ---
+                              Expanded(
+                                child: GestureDetector(
+                                  onTapDown: (_) =>
+                                      setState(() => _isSignUpPressed = true),
+                                  onTapUp: (_) {
+                                    setState(() => _isSignUpPressed = false);
+                                    Future.delayed(
+                                        const Duration(milliseconds: 100), () {
+                                      if (mounted)
+                                        _showAuthDialog(context,
+                                            mode: 'signup');
+                                    });
+                                  },
+                                  onTapCancel: () =>
+                                      setState(() => _isSignUpPressed = false),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 120),
+                                    curve: Curves.fastOutSlowIn,
+                                    decoration: _isSignUpPressed
+                                        ? depressedDecoration()
+                                        : raisedDecoration(_isSignUpPressed),
+                                    transform: _isSignUpPressed
+                                        ? Matrix4.translationValues(
+                                            1.5, 1.5, 0.0)
+                                        : Matrix4.identity(),
+                                    transformAlignment: Alignment.center,
+                                    alignment: Alignment.center,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 5),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.person_add_alt_1_outlined,
+                                          size: isSmallScreen ? 18 : 20,
+                                          color: Colors.white,
+                                          shadows: textStyle.shadows,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Flexible(
+                                          // Use Flexible for text wrapping if needed
+                                          child: Text(
+                                            'Sign Up',
+                                            style: textStyle,
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        ElevatedButton.icon(
-                          icon: const Icon(Icons.login_outlined, size: 18),
-                          label: const Text('Sign In'),
-                          style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: isSmallScreen ? 18 : 26,
-                                  vertical: 14),
-                              textStyle: TextStyle(
-                                  fontSize: isSmallScreen ? 15 : 16,
-                                  fontWeight: FontWeight.bold),
-                              backgroundColor: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withOpacity(0.9),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30))),
-                          onPressed: () =>
-                              _showAuthDialog(context, mode: 'signin'),
-                        ),
-                      ],
+                      ),
                     ).animate().fadeIn(delay: 600.ms, duration: 600.ms).slideY(
                         begin: 0.2,
                         delay: 600.ms,
                         duration: 500.ms,
                         curve: Curves.easeOutCubic),
+                    // *******************************************
+                    // ******** MODIFIED BUTTON SECTION END ********
+                    // *******************************************
 
                     const SizedBox(height: AppConstants.sectionSpacing * 2.5),
 
-                    // --- Bottom Text Block (Explainer) --- MODIFIED TO USE LOGO ---
+                    // --- Bottom Text Block (Explainer) --- (Keep as is)
                     _buildInfoBlock(
                       context,
-                      // icon: Icons.groups_outlined, // Commented out icon
-                      logoPath:
-                          'assets/logos/app_logo.png', // <<< YOUR LOGO PATH HERE AGAIN
+                      logoPath: 'assets/logos/app_logo.png',
                       text:
                           'Join our community, track progress, and discover sustainable habits.',
                       isSmallScreen: isSmallScreen,
@@ -795,13 +948,12 @@ class _AuthScreenState extends State<AuthScreen> {
 
                     SizedBox(height: screenHeight * 0.06),
 
-                    // --- Footer Links --- MODIFIED onPressed ---
+                    // --- Footer Links --- (Keep as is)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         TextButton(
-                          onPressed: () =>
-                              _showLegalInfo(context, 'privacy'), // Call helper
+                          onPressed: () => _showLegalInfo(context, 'privacy'),
                           style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 4),
@@ -809,22 +961,21 @@ class _AuthScreenState extends State<AuthScreen> {
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                           child: Text('Privacy Policy',
                               style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
+                                  color: Colors.white.withValues(alpha: 0.7),
                                   fontSize: 12,
                                   decoration: TextDecoration.underline,
                                   decorationColor:
-                                      Colors.white.withOpacity(0.7))),
+                                      Colors.white.withValues(alpha: 0.7))),
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 4.0),
                           child: Text('|',
                               style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
+                                  color: Colors.white.withValues(alpha: 0.7),
                                   fontSize: 12)),
                         ),
                         TextButton(
-                          onPressed: () =>
-                              _showLegalInfo(context, 'terms'), // Call helper
+                          onPressed: () => _showLegalInfo(context, 'terms'),
                           style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 4),
@@ -832,11 +983,11 @@ class _AuthScreenState extends State<AuthScreen> {
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                           child: Text('Terms of Service',
                               style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
+                                  color: Colors.white.withValues(alpha: 0.7),
                                   fontSize: 12,
                                   decoration: TextDecoration.underline,
                                   decorationColor:
-                                      Colors.white.withOpacity(0.7))),
+                                      Colors.white.withValues(alpha: 0.7))),
                         ),
                       ],
                     ).animate().fadeIn(delay: 900.ms, duration: 600.ms),
@@ -852,54 +1003,40 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  // --- Helper Widget for Logo + Text Info Blocks --- MODIFIED ---
+  // --- Helper Widget for Logo + Text Info Blocks --- (Keep as is)
   Widget _buildInfoBlock(BuildContext context,
-      {
-      // required IconData icon, // Commented out
-      required String logoPath, // Added logo path
+      {required String logoPath,
       required String text,
       required bool isSmallScreen}) {
-    final double logoSize = isSmallScreen ? 20 : 24; // Responsive logo size
-
+    final double logoSize = isSmallScreen ? 20 : 24;
     return Container(
       padding: const EdgeInsets.symmetric(
           horizontal: AppConstants.itemSpacing * 1.5,
           vertical: AppConstants.itemSpacing * 1.25),
       decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.5),
+          color: Colors.black.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.1), width: 0.5)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 0.5)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: MainAxisSize.min, // Prevent row from taking full width
         children: [
-          // --- Use Image.asset for Logo ---
           Image.asset(
-            logoPath, // Use the provided path
+            logoPath,
             height: logoSize,
-            width: logoSize, // Ensure aspect ratio is maintained if needed
-            color: Theme.of(context)
-                .colorScheme
-                .primary
-                .withOpacity(0.95), // Apply color tint if desired
-            colorBlendMode: BlendMode.srcIn, // Apply color tint mode
-            errorBuilder: (ctx, err, st) => Icon(
-                // Fallback icon if logo fails
-                Icons.eco_outlined, // Original fallback icon
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.9),
+            width: logoSize,
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.95),
+            colorBlendMode: BlendMode.srcIn,
+            errorBuilder: (ctx, err, st) => Icon(Icons.eco_outlined,
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.9),
                 size: logoSize),
           ),
-          // Icon( // Original icon commented out
-          //   icon,
-          //   color: Theme.of(context).colorScheme.primary.withOpacity(0.9),
-          //   size: isSmallScreen ? 20 : 24
-          // ),
           const SizedBox(width: AppConstants.itemSpacing * 1.25),
           Flexible(
             child: Text(
               text,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.white.withOpacity(0.95),
+                    color: Colors.white.withValues(alpha: 0.95),
                     fontSize: isSmallScreen ? 14 : 16,
                     height: 1.4,
                   ),
