@@ -18,6 +18,13 @@ class AppConstants {
 
   // --- FLAT IMAGE CONSTANTS ---
 
-  static const String splashScreenBackgroundImage = 'assets/images/mountain_bg.jpg';
-  static const String mainScreenBackgroundImage = 'assets/images/mountain_bg2.jpg';
+  static const String splashScreenBackgroundImage =
+      'assets/images/mountain_bg.jpg';
+  static const String mainScreenBackgroundImage =
+      'assets/images/mountain_bg2.jpg';
+
+  final List<String> backgroundImages = [
+    'assets/images/mountain_bg.jpg',
+    'assets/images/mountain_bg2.jpg',
+  ];
 }
