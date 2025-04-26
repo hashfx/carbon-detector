@@ -1,7 +1,10 @@
+// lib/screens/splash_screen.dart
 import 'package:flutter/material.dart';
 import 'dart:async';
-import '../main.dart';
-import 'carbon_data_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+// import 'package:carbon_counter/screens/auth_screen.dart';
+// import 'package:carbon_counter/screens/carbon_data_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -14,34 +17,66 @@ class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _logoAnimationController;
   late Animation<double> _logoSlideAnimation;
+  late Animation<double> _logoFadeAnimation; // Added fade animation
 
   @override
   void initState() {
     super.initState();
 
-    // Logo Slide-in Animation
+    // Logo Animations
     _logoAnimationController = AnimationController(
-      duration: const Duration(seconds: 2),
+      duration: const Duration(milliseconds: 1500), // Slightly faster
       vsync: this,
     );
+
+    // Slide Animation (starts slightly off-screen below, moves up)
     _logoSlideAnimation = Tween<double>(
-      begin: -300.0, // Start position off-screen to the left
-      end: 0.0, // End position at the center (or desired horizontal position)
+      begin: 50.0, // Start below center
+      end: 0.0, // End at center
     ).animate(
       CurvedAnimation(
         parent: _logoAnimationController,
-        curve: Curves.easeInOutQuart,
+        // curve: Curves.easeInOutQuart,
+        curve: Curves.elasticOut, // Bouncy effect
+      ),
+    );
+
+    // Fade-in Animation
+    _logoFadeAnimation = Tween<double>(
+      begin: 0.0, // Start fully transparent
+      end: 1.0, // End fully opaque
+    ).animate(
+      CurvedAnimation(
+        parent: _logoAnimationController,
+        curve: const Interval(0.0, 0.7,
+            curve: Curves.easeIn), // Fade in during first 70%
       ),
     );
 
     _logoAnimationController.forward(); // Start animations
 
-    // Timer for Splash Screen Duration and Navigation
-    Timer(Duration(seconds: 4), () {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => CarbonDataScreen()),
-      );
+    // Timer for Splash Screen Duration and Navigation Check
+    Timer(const Duration(seconds: 3), () {
+      // Reduced duration slightly
+      _checkAuthStatusAndNavigate();
     });
+  }
+
+  // --- Check Auth Status and Navigate ---
+  Future<void> _checkAuthStatusAndNavigate() async {
+    if (!mounted) return; // Check if the widget is still mounted
+
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      // User is signed in -> Navigate to CarbonDataScreen
+      print("User is signed in: ${user.uid}");
+      Navigator.of(context).pushReplacementNamed('/carbon_data');
+    } else {
+      // User is NOT signed in -> Navigate to AuthScreen
+      print("User is not signed in.");
+      Navigator.of(context).pushReplacementNamed('/auth');
+    }
   }
 
   @override
@@ -52,41 +87,90 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Use a theme-aware background or a gradient
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.blue[200],
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            // Animated Logo Image (Slide-in)
-            AnimatedBuilder(
-              animation: _logoAnimationController,
-              builder: (context, child) {
-                return Transform.translate(
-                  offset: Offset(
-                    _logoSlideAnimation.value,
-                    0.0,
-                  ), // Horizontal translation
-                  child: child,
-                );
-              },
-              child: Image.asset(
-                // Child widget that gets animated
-                'assets/images/carbon_shodhak_logo.png',
-                height: 150,
+      // backgroundColor: Colors.blue[200], // Original
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.colorScheme.primary.withOpacity(0.8),
+              theme.colorScheme.secondary.withOpacity(0.6),
+            ],
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              // Animated Logo Image (Slide + Fade)
+              AnimatedBuilder(
+                animation: _logoAnimationController,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: _logoFadeAnimation.value,
+                    child: Transform.translate(
+                      offset: Offset(
+                        0.0, // No horizontal slide in this version
+                        _logoSlideAnimation.value, // Vertical translation
+                      ),
+                      child: child,
+                    ),
+                  );
+                },
+                child: Image.asset(
+                  // Child widget that gets animated
+                  // Ensure this path is correct in your project
+                  'assets/images/carbon_shodhak_logo.png', // Updated path based on auth_screen
+                  height: 130, // Slightly smaller
+                  errorBuilder: (ctx, err, st) =>
+                      Icon(Icons.eco, size: 120, color: Colors.white70),
+                ),
               ),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Carbon is in the Air: Tracking the Invisible',
-              style: TextStyle(
-                fontSize: 20,
-                fontStyle: FontStyle.italic,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2C3E50),
+              const SizedBox(height: 25),
+              // Fade in the text after the logo animation starts
+              FadeTransition(
+                opacity: CurvedAnimation(
+                  parent: _logoAnimationController,
+                  curve: const Interval(0.5, 1.0,
+                      curve: Curves.easeIn), // Fade in during second half
+                ),
+                child: const Text(
+                  'Carbon शोधक', // App name
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    shadows: [
+                      Shadow(
+                          blurRadius: 2,
+                          color: Colors.black38,
+                          offset: Offset(1, 1))
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 10),
+              FadeTransition(
+                opacity: CurvedAnimation(
+                  parent: _logoAnimationController,
+                  curve: const Interval(0.6, 1.0,
+                      curve: Curves.easeIn), // Fade in later
+                ),
+                child: Text(
+                  'Tracking the Invisible...', // Tagline
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.white.withOpacity(0.85),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
