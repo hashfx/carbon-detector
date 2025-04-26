@@ -717,7 +717,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     SizedBox(height: screenHeight * 0.05),
                     // --- Logo, App Name, Tagline --- (Keep as is)
                     Image.asset(
-                      'assets/logos/app_logo.png',
+                      'assets/images/carbon_shodhak_logo.png',
                       height: isSmallScreen ? 65 : 85,
                       errorBuilder: (ctx, err, st) => Icon(Icons.eco,
                           size: isSmallScreen ? 60 : 70,
@@ -765,7 +765,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     // --- Top Text Block (Headline) --- (Keep as is)
                     _buildInfoBlock(
                       context,
-                      logoPath: 'assets/logos/app_logo.png',
+                      logoPath: 'assets/images/carbon_shodhak_logo.png',
                       text:
                           'Understand & Reduce Your Carbon Impact with Personalized Insights.',
                       isSmallScreen: isSmallScreen,
@@ -936,7 +936,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     // --- Bottom Text Block (Explainer) --- (Keep as is)
                     _buildInfoBlock(
                       context,
-                      logoPath: 'assets/logos/app_logo.png',
+                      logoPath: 'assets/images/carbon_shodhak_logo.png',
                       text:
                           'Join our community, track progress, and discover sustainable habits.',
                       isSmallScreen: isSmallScreen,
