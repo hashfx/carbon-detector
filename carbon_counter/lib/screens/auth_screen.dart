@@ -78,256 +78,261 @@ class _AuthScreenState extends State<AuthScreen> {
 
   // --- Dialog Authentication Logic ---
   void _showAuthDialog(BuildContext context, {required String mode}) {
+    if (!mounted) return;
     _emailController.clear();
     _passwordController.clear();
     _isPasswordVisible = false;
     _dialogAuthErrorMessage = '';
     _isSubmitting = false;
     _log("Showing Auth Dialog for mode: $mode");
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext dialogContext) {
-        return StatefulBuilder(
-          builder: (stfContext, stfSetState) {
-            return Animate(
-              effects: const [
-                FadeEffect(duration: Duration(milliseconds: 300)),
-                ScaleEffect(begin: Offset(0.95, 0.95), curve: Curves.easeOut)
-              ],
-              child: AlertDialog(
-                backgroundColor: Colors.transparent,
-                contentPadding: EdgeInsets.zero,
-                content: GlassmorphicContainer(
-                  width: 400,
-                  height: _dialogAuthErrorMessage.isNotEmpty ? 480 : 450,
-                  borderRadius: 20,
-                  blur: 15,
-                  alignment: Alignment.center,
-                  border: 2,
-                  linearGradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Theme.of(context).colorScheme.surface.withAlpha(25),
-                      Theme.of(context).colorScheme.surface.withAlpha(50),
-                    ],
-                    stops: const [0.1, 1],
-                  ),
-                  borderGradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Theme.of(context).colorScheme.primary.withAlpha(128),
-                      Theme.of(context).colorScheme.secondary.withAlpha(128),
-                    ],
-                  ),
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: IconButton(
-                          icon: const Icon(Icons.close, color: Colors.white70),
-                          onPressed: () => Navigator.of(stfContext).pop(),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(25.0),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: <Widget>[
-                              Text(
-                                mode == 'signin' ? 'Sign In' : 'Sign Up',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineSmall
-                                    ?.copyWith(color: Colors.white),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 20),
-                              TextFormField(
-                                controller: _emailController,
-                                keyboardType: TextInputType.emailAddress,
-                                autocorrect: false,
-                                textCapitalization: TextCapitalization.none,
-                                style: const TextStyle(color: Colors.white),
-                                decoration: InputDecoration(
-                                  labelText: 'Email',
-                                  labelStyle:
-                                      const TextStyle(color: Colors.white70),
-                                  hintText: 'Enter your email',
-                                  hintStyle:
-                                      const TextStyle(color: Colors.white54),
-                                  enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          color: Colors.white.withAlpha(128)),
-                                      borderRadius: BorderRadius.circular(12)),
-                                  focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary),
-                                      borderRadius: BorderRadius.circular(12)),
-                                  errorBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          color: Colors.redAccent
-                                              .withAlpha(179)),
-                                      borderRadius: BorderRadius.circular(12)),
-                                  focusedErrorBorder: OutlineInputBorder(
-                                      borderSide: const BorderSide(
-                                          color: Colors.redAccent),
-                                      borderRadius: BorderRadius.circular(12)),
-                                  prefixIcon: const Icon(Icons.email_outlined,
-                                      color: Colors.white70),
-                                ),
-                                validator: (value) {
-                                  final v = value?.trim() ?? '';
-                                  if (v.isEmpty) {
-                                    return 'Please enter your email.';
-                                  }
-                                  if (!RegExp(
-                                          r"^[a-zA-Z0-9.+_-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]+$")
-                                      .hasMatch(v)) {
-                                    return 'Please enter a valid email address.';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 15),
-                              TextFormField(
-                                controller: _passwordController,
-                                obscureText: !_isPasswordVisible,
-                                style: const TextStyle(color: Colors.white),
-                                decoration: InputDecoration(
-                                  labelText: 'Password',
-                                  labelStyle:
-                                      const TextStyle(color: Colors.white70),
-                                  hintText: 'Enter your password',
-                                  hintStyle:
-                                      const TextStyle(color: Colors.white54),
-                                  enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          color: Colors.white.withAlpha(128)),
-                                      borderRadius: BorderRadius.circular(12)),
-                                  focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary),
-                                      borderRadius: BorderRadius.circular(12)),
-                                  errorBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          color: Colors.redAccent
-                                              .withAlpha(179)),
-                                      borderRadius: BorderRadius.circular(12)),
-                                  focusedErrorBorder: OutlineInputBorder(
-                                      borderSide: const BorderSide(
-                                          color: Colors.redAccent),
-                                      borderRadius: BorderRadius.circular(12)),
-                                  prefixIcon: const Icon(Icons.lock_outline,
-                                      color: Colors.white70),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                        _isPasswordVisible
-                                            ? Icons.visibility_off_outlined
-                                            : Icons.visibility_outlined,
-                                        color: Colors.white70),
-                                    onPressed: _isSubmitting
-                                        ? null
-                                        : () => stfSetState(() =>
-                                            _isPasswordVisible =
-                                                !_isPasswordVisible),
-                                  ),
-                                ),
-                                validator: (value) {
-                                  final v = value?.trim() ?? '';
-                                  if (v.isEmpty) {
-                                    return 'Please enter your password.';
-                                  }
-                                  if (v.length < 6) {
-                                    return 'Password must be at least 6 characters.';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 10),
-                              AnimatedOpacity(
-                                opacity: _dialogAuthErrorMessage.isNotEmpty
-                                    ? 1.0
-                                    : 0.0,
-                                duration: const Duration(milliseconds: 300),
-                                child: _dialogAuthErrorMessage.isNotEmpty
-                                    ? Padding(
-                                        padding: const EdgeInsets.only(
-                                            top: 8.0, bottom: 8.0),
-                                        child: Text(
-                                          _dialogAuthErrorMessage,
-                                          style: TextStyle(
-                                              color: Colors.redAccent[100],
-                                              fontWeight: FontWeight.w500),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      )
-                                    : const SizedBox.shrink(),
-                              ),
-                              const SizedBox(height: 15),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 14),
-                                  textStyle: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                  backgroundColor: Theme.of(context)
-                                      .colorScheme
-                                      .primary
-                                      .withAlpha(204),
-                                  foregroundColor: Colors.white,
-                                ),
-                                onPressed: _isSubmitting
-                                    ? null
-                                    : () => _submitAuthForm(
-                                        mode: mode,
-                                        dialogContext: stfContext,
-                                        dialogSetState: stfSetState),
-                                child: _isSubmitting
-                                    ? const SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2.5,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                    Colors.white)))
-                                    : Text(mode == 'signin'
-                                        ? 'Sign In'
-                                        : 'Sign Up'),
-                              ),
-                            ],
+    
+    // Delay dialog showing slightly to prevent visual glitches
+    Future.microtask(() {
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: true,
+          builder: (BuildContext dialogContext) {
+            return StatefulBuilder(builder: (stfContext, stfSetState) {
+              return Animate(
+                effects: const [
+                  FadeEffect(duration: Duration(milliseconds: 300)),
+                  ScaleEffect(begin: Offset(0.95, 0.95), curve: Curves.easeOut)
+                ],
+                child: AlertDialog(
+                  backgroundColor: Colors.transparent,
+                  contentPadding: EdgeInsets.zero,
+                  content: GlassmorphicContainer(
+                    width: 400,
+                    height: _dialogAuthErrorMessage.isNotEmpty ? 480 : 450,
+                    borderRadius: 20,
+                    blur: 15,
+                    alignment: Alignment.center,
+                    border: 2,
+                    linearGradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Theme.of(context).colorScheme.surface.withAlpha(25),
+                        Theme.of(context).colorScheme.surface.withAlpha(50),
+                      ],
+                      stops: const [0.1, 1],
+                    ),
+                    borderGradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Theme.of(context).colorScheme.primary.withAlpha(128),
+                        Theme.of(context).colorScheme.secondary.withAlpha(128),
+                      ],
+                    ),
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white70),
+                            onPressed: () => Navigator.of(stfContext).pop(),
                           ),
                         ),
-                      ),
-                    ],
+                        Padding(
+                          padding: const EdgeInsets.all(25.0),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: <Widget>[
+                                Text(
+                                  mode == 'signin' ? 'Sign In' : 'Sign Up',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineSmall
+                                      ?.copyWith(color: Colors.white),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 20),
+                                TextFormField(
+                                  controller: _emailController,
+                                  keyboardType: TextInputType.emailAddress,
+                                  autocorrect: false,
+                                  textCapitalization: TextCapitalization.none,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: InputDecoration(
+                                    labelText: 'Email',
+                                    labelStyle:
+                                        const TextStyle(color: Colors.white70),
+                                    hintText: 'Enter your email',
+                                    hintStyle:
+                                        const TextStyle(color: Colors.white54),
+                                    enabledBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                            color: Colors.white.withAlpha(128)),
+                                        borderRadius: BorderRadius.circular(12)),
+                                    focusedBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary),
+                                        borderRadius: BorderRadius.circular(12)),
+                                    errorBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                            color: Colors.redAccent
+                                                .withAlpha(179)),
+                                        borderRadius: BorderRadius.circular(12)),
+                                    focusedErrorBorder: OutlineInputBorder(
+                                        borderSide: const BorderSide(
+                                            color: Colors.redAccent),
+                                        borderRadius: BorderRadius.circular(12)),
+                                    prefixIcon: const Icon(Icons.email_outlined,
+                                        color: Colors.white70),
+                                  ),
+                                  validator: (value) {
+                                    final v = value?.trim() ?? '';
+                                    if (v.isEmpty) {
+                                      return 'Please enter your email.';
+                                    }
+                                    if (!RegExp(
+                                            r"^[a-zA-Z0-9.+_-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]+$")
+                                        .hasMatch(v)) {
+                                      return 'Please enter a valid email address.';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 15),
+                                TextFormField(
+                                  controller: _passwordController,
+                                  obscureText: !_isPasswordVisible,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: InputDecoration(
+                                    labelText: 'Password',
+                                    labelStyle:
+                                        const TextStyle(color: Colors.white70),
+                                    hintText: 'Enter your password',
+                                    hintStyle:
+                                        const TextStyle(color: Colors.white54),
+                                    enabledBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                            color: Colors.white.withAlpha(128)),
+                                        borderRadius: BorderRadius.circular(12)),
+                                    focusedBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary),
+                                        borderRadius: BorderRadius.circular(12)),
+                                    errorBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                            color: Colors.redAccent
+                                                .withAlpha(179)),
+                                        borderRadius: BorderRadius.circular(12)),
+                                    focusedErrorBorder: OutlineInputBorder(
+                                        borderSide: const BorderSide(
+                                            color: Colors.redAccent),
+                                        borderRadius: BorderRadius.circular(12)),
+                                    prefixIcon: const Icon(Icons.lock_outline,
+                                        color: Colors.white70),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                          _isPasswordVisible
+                                              ? Icons.visibility_off_outlined
+                                              : Icons.visibility_outlined,
+                                          color: Colors.white70),
+                                      onPressed: _isSubmitting
+                                          ? null
+                                          : () => stfSetState(() =>
+                                              _isPasswordVisible =
+                                                  !_isPasswordVisible),
+                                    ),
+                                  ),
+                                  validator: (value) {
+                                    final v = value?.trim() ?? '';
+                                    if (v.isEmpty) {
+                                      return 'Please enter your password.';
+                                    }
+                                    if (v.length < 6) {
+                                      return 'Password must be at least 6 characters.';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 10),
+                                AnimatedOpacity(
+                                  opacity: _dialogAuthErrorMessage.isNotEmpty
+                                      ? 1.0
+                                      : 0.0,
+                                  duration: const Duration(milliseconds: 300),
+                                  child: _dialogAuthErrorMessage.isNotEmpty
+                                      ? Padding(
+                                          padding: const EdgeInsets.only(
+                                              top: 8.0, bottom: 8.0),
+                                          child: Text(
+                                            _dialogAuthErrorMessage,
+                                            style: TextStyle(
+                                                color: Colors.redAccent[100],
+                                                fontWeight: FontWeight.w500),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        )
+                                      : const SizedBox.shrink(),
+                                ),
+                                const SizedBox(height: 15),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 14),
+                                    textStyle: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12)),
+                                    backgroundColor: Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withAlpha(204),
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  onPressed: _isSubmitting
+                                      ? null
+                                      : () => _submitAuthForm(
+                                          mode: mode,
+                                          dialogContext: stfContext,
+                                          dialogSetState: stfSetState),
+                                  child: _isSubmitting
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2.5,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                      Colors.white)))
+                                      : Text(mode == 'signin'
+                                          ? 'Sign In'
+                                          : 'Sign Up'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
+              );
+            });
           },
         );
-      },
-    );
+      }
+    });
   }
 
-  Future<void> _submitAuthForm(
-      {required String mode,
-      required BuildContext dialogContext,
-      required StateSetter dialogSetState}) async {
+  Future<void> _submitAuthForm({
+    required String mode,
+    required BuildContext dialogContext,
+    required StateSetter dialogSetState}) async {
     _log("submitAuthForm: Attempting submission for mode: $mode");
     final form = _formKey.currentState;
     if (form == null || !form.validate()) {
@@ -337,6 +342,7 @@ class _AuthScreenState extends State<AuthScreen> {
       }
       return;
     }
+    
     _log("submitAuthForm: Form validation PASSED.");
     if (_isSubmitting) return;
     if (dialogContext.mounted) {
@@ -345,12 +351,13 @@ class _AuthScreenState extends State<AuthScreen> {
         _dialogAuthErrorMessage = '';
       });
     }
+
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
-    final bool attemptSignIn = (mode == 'signin');
+    
     try {
       UserCredential userCredential;
-      if (attemptSignIn) {
+      if (mode == 'signin') {
         userCredential = await FirebaseAuth.instance
             .signInWithEmailAndPassword(email: email, password: password);
         _log("submitAuthForm: Sign In SUCCESSFUL.");
@@ -359,15 +366,15 @@ class _AuthScreenState extends State<AuthScreen> {
             .createUserWithEmailAndPassword(email: email, password: password);
         _log("submitAuthForm: Sign Up SUCCESSFUL.");
       }
+      
       if (!dialogContext.mounted) return;
       if (userCredential.user != null) {
+        // Simply close the dialog and let AuthWrapper handle navigation
         Navigator.of(dialogContext).pop();
-        _navigateToCarbonDataScreen();
       } else {
         if (dialogContext.mounted) {
           dialogSetState(() {
-            _dialogAuthErrorMessage =
-                "Authentication successful, but failed to retrieve user data.";
+            _dialogAuthErrorMessage = "Authentication successful, but failed to retrieve user data.";
             _isSubmitting = false;
           });
         }
@@ -387,10 +394,6 @@ class _AuthScreenState extends State<AuthScreen> {
         _dialogAuthErrorMessage = 'An unexpected error occurred.';
         _isSubmitting = false;
       });
-    } finally {
-      if (dialogContext.mounted && _isSubmitting) {
-        dialogSetState(() => _isSubmitting = false);
-      }
     }
   }
 
@@ -428,15 +431,6 @@ class _AuthScreenState extends State<AuthScreen> {
         _log("getAuthErrorMessage: Unhandled error code: $errorCode");
         return 'An authentication error occurred ($errorCode).';
     }
-  }
-
-  void _navigateToCarbonDataScreen() {
-    if (!mounted) return;
-    _log("Navigating to NavigationContainer...");
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const NavigationContainer()),
-      (Route<dynamic> route) => false,
-    );
   }
 
   void _showLegalInfo(BuildContext context, String type) {
@@ -956,19 +950,22 @@ class _AuthScreenState extends State<AuthScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Image.asset(
-            logoPath,
-            height: logoSize,
+          SizedBox(
             width: logoSize,
-            color: Theme.of(context).colorScheme.primary.withAlpha(242),
-            colorBlendMode: BlendMode.srcIn,
-            errorBuilder: (ctx, err, st) => Icon(Icons.eco_outlined,
-                color: Theme.of(context).colorScheme.primary.withAlpha(230),
-                size: logoSize),
+            height: logoSize,
+            child: Image.asset(
+              logoPath,
+              color: Theme.of(context).colorScheme.primary.withAlpha(242),
+              colorBlendMode: BlendMode.srcIn,
+              errorBuilder: (ctx, err, st) => Icon(Icons.eco_outlined,
+                  color: Theme.of(context).colorScheme.primary.withAlpha(230),
+                  size: logoSize),
+            ),
           ),
           const SizedBox(width: AppConstants.itemSpacing * 1.25),
-          Flexible(
+          Expanded(
             child: Text(
               text,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -977,6 +974,8 @@ class _AuthScreenState extends State<AuthScreen> {
                     height: 1.4,
                   ),
               textAlign: TextAlign.center,
+              overflow: TextOverflow.visible,
+              softWrap: true,
             ),
           ),
         ],
