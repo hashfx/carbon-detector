@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:carbon_counter/screens/auth_screen.dart';
-import 'package:carbon_counter/screens/carbon_data_screen.dart';
+import 'package:carbon_counter/screens/navigation_container.dart';
 import 'package:carbon_counter/firebase_options.dart';
 import 'package:carbon_counter/screens/splash_screen.dart';
 import 'package:carbon_counter/screens/settings_screen.dart';
+import 'package:carbon_counter/widgets/auth_wrapper.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:carbon_counter/services/settings_service.dart'; // Import SettingsService
 
@@ -152,10 +153,30 @@ class MyApp extends StatelessWidget {
           themeMode: currentMode,
           debugShowCheckedModeBanner: false,
           home: const SplashScreen(),
-          routes: {
-            '/auth': (context) => const AuthScreen(),
-            '/carbon_data': (context) => const CarbonDataScreen(),
-            '/settings': (context) => const SettingsScreen(),
+          onGenerateRoute: (settings) {
+            switch (settings.name) {
+              case '/auth':
+                return MaterialPageRoute(
+                  builder: (context) => AuthWrapper(
+                    requireAuth: false,
+                    child: AuthScreen(),
+                  ),
+                );
+              case '/home':
+                return MaterialPageRoute(
+                  builder: (context) => AuthWrapper(
+                    child: NavigationContainer(),
+                  ),
+                );
+              case '/settings':
+                return MaterialPageRoute(
+                  builder: (context) => AuthWrapper(
+                    child: SettingsScreen(),
+                  ),
+                );
+              default:
+                return null;
+            }
           },
         );
       },
