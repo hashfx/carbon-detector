@@ -62,16 +62,15 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
-  // --- Check Auth Status and Navigate ---
   Future<void> _checkAuthStatusAndNavigate() async {
-    if (!mounted) return; // Check if the widget is still mounted
+    if (!mounted) return;
 
     User? user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
-      // User is signed in -> Navigate to CarbonDataScreen
+      // User is signed in -> Navigate to NavigationContainer
       print("User is signed in: ${user.uid}");
-      Navigator.of(context).pushReplacementNamed('/carbon_data');
+      Navigator.of(context).pushReplacementNamed('/home');
     } else {
       // User is NOT signed in -> Navigate to AuthScreen
       print("User is not signed in.");
