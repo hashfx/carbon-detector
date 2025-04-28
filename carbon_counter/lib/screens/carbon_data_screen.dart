@@ -332,8 +332,7 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
             ),
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () =>
-                _openSettings(context), // Navigate to settings screen
+            onPressed: () => _openSettings(context),
             tooltip: 'Settings',
           ),
           IconButton(
@@ -361,8 +360,6 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
                           DataChips(data: _data.isNotEmpty ? _data.last : null),
                           const SizedBox(
                               height: AppConstants.sectionSpacing * 1.5),
-
-                          // --- CONDITIONAL STANDALONE GRAPH ---
                           if (_graphDisplayMode ==
                                   GraphDisplayMode.standalone &&
                               _data.length > 1)
@@ -370,7 +367,6 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
                               padding: const EdgeInsets.symmetric(
                                   vertical: AppConstants.sectionSpacing),
                               child: Card(
-                                // Wrap chart in a Card for better visual separation
                                 elevation: 2.0,
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8.0)),
@@ -387,7 +383,6 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
                               child:
                                   Text("Not enough data for standalone graph."),
                             ),
-
                           Text(
                             "Historical Data Statistics",
                             style: Theme.of(context)
@@ -397,17 +392,13 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: AppConstants.itemSpacing),
-
-                          // --- Pass data and display mode to StatsTable ---
                           StatsTable(
                             allData: _data,
                             dailyStats: _dailyStats,
                             weeklyStats: _weeklyStats,
                             monthlyStats: _monthlyStats,
-                            graphDisplayMode:
-                                _graphDisplayMode, // Pass the setting
+                            graphDisplayMode: _graphDisplayMode,
                           ),
-
                           const SizedBox(height: AppConstants.sectionSpacing),
                         ],
                       ),
@@ -416,16 +407,6 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
                 ),
               ),
             ),
-      bottomNavigationBar: BottomAppBar(
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Text(
-            'Copyright © ${DateTime.now().year} Carbon शोधक App',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-          ),
-        ),
-      ),
     );
   }
 }
