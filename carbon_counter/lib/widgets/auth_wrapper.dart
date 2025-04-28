@@ -18,19 +18,37 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        if (requireAuth) {
-          if (snapshot.hasData) {
-            return child;
+        // Add a small delay to ensure proper widget disposal
+        if (snapshot.connectionState == ConnectionState.active) {
+          if (requireAuth) {
+            if (snapshot.hasData) {
+              return FadeTransition(
+                opacity: AlwaysStoppedAnimation(1.0),
+                child: child,
+              );
+            } else {
+              return FadeTransition(
+                opacity: AlwaysStoppedAnimation(1.0),
+                child: const AuthScreen(),
+              );
+            }
           } else {
-            return const AuthScreen();
-          }
-        } else {
-          if (snapshot.hasData) {
-            return const NavigationContainer();
-          } else {
-            return child;
+            if (snapshot.hasData) {
+              return FadeTransition(
+                opacity: AlwaysStoppedAnimation(1.0),
+                child: const NavigationContainer(),
+              );
+            } else {
+              return FadeTransition(
+                opacity: AlwaysStoppedAnimation(1.0),
+                child: child,
+              );
+            }
           }
         }
+        
+        // Show a transparent widget while transitioning
+        return const SizedBox.shrink();
       },
     );
   }
