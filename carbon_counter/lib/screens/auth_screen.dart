@@ -7,9 +7,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:glassmorphism/glassmorphism.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-import 'package:carbon_counter/screens/carbon_data_screen.dart';
+import 'package:carbon_counter/screens/navigation_container.dart';
 import 'package:carbon_counter/utils/constants.dart';
-import 'package:carbon_counter/widgets/legal_content.dart'; // Assuming this path is correct
+import 'package:carbon_counter/widgets/legal_content.dart';
 
 // --- AuthScreen Widget ---
 class AuthScreen extends StatefulWidget {
@@ -45,7 +45,7 @@ class _AuthScreenState extends State<AuthScreen> {
     _selectRandomBackground();
   }
 
-  // --- _selectRandomBackground --- (Keep as is)
+  // --- _selectRandomBackground ---
   void _selectRandomBackground() {
     final List<String> images = AppConstants().backgroundImages;
     if (images.isNotEmpty) {
@@ -77,10 +77,6 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   // --- Dialog Authentication Logic ---
-  // --- KEEP _showAuthDialog, _submitAuthForm, _getAuthErrorMessage, ---
-  // --- _navigateToCarbonDataScreen, _showLegalInfo, _showDraggableBottomSheet, ---
-  // --- _showCenteredDialog EXACTLY AS THEY WERE IN THE ORIGINAL CODE ---
-  // ... (Paste your existing dialog/auth/legal functions here - NO CHANGES NEEDED) ...
   void _showAuthDialog(BuildContext context, {required String mode}) {
     _emailController.clear();
     _passwordController.clear();
@@ -113,8 +109,8 @@ class _AuthScreenState extends State<AuthScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Theme.of(context).colorScheme.surface.withValues(alpha: 0.1),
-                      Theme.of(context).colorScheme.surface.withValues(alpha: 0.2),
+                      Theme.of(context).colorScheme.surface.withAlpha(25),
+                      Theme.of(context).colorScheme.surface.withAlpha(50),
                     ],
                     stops: const [0.1, 1],
                   ),
@@ -122,8 +118,8 @@ class _AuthScreenState extends State<AuthScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
-                      Theme.of(context).colorScheme.secondary.withValues(alpha: 0.5),
+                      Theme.of(context).colorScheme.primary.withAlpha(128),
+                      Theme.of(context).colorScheme.secondary.withAlpha(128),
                     ],
                   ),
                   child: Stack(
@@ -168,7 +164,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                       const TextStyle(color: Colors.white54),
                                   enabledBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
-                                          color: Colors.white.withValues(alpha: 0.5)),
+                                          color: Colors.white.withAlpha(128)),
                                       borderRadius: BorderRadius.circular(12)),
                                   focusedBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
@@ -179,7 +175,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   errorBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
                                           color: Colors.redAccent
-                                              .withValues(alpha: 0.7)),
+                                              .withAlpha(179)),
                                       borderRadius: BorderRadius.circular(12)),
                                   focusedErrorBorder: OutlineInputBorder(
                                       borderSide: const BorderSide(
@@ -215,7 +211,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                       const TextStyle(color: Colors.white54),
                                   enabledBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
-                                          color: Colors.white.withValues(alpha: 0.5)),
+                                          color: Colors.white.withAlpha(128)),
                                       borderRadius: BorderRadius.circular(12)),
                                   focusedBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
@@ -226,7 +222,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   errorBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
                                           color: Colors.redAccent
-                                              .withValues(alpha: 0.7)),
+                                              .withAlpha(179)),
                                       borderRadius: BorderRadius.circular(12)),
                                   focusedErrorBorder: OutlineInputBorder(
                                       borderSide: const BorderSide(
@@ -291,7 +287,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   backgroundColor: Theme.of(context)
                                       .colorScheme
                                       .primary
-                                      .withValues(alpha: 0.8),
+                                      .withAlpha(204),
                                   foregroundColor: Colors.white,
                                 ),
                                 onPressed: _isSubmitting
@@ -436,9 +432,9 @@ class _AuthScreenState extends State<AuthScreen> {
 
   void _navigateToCarbonDataScreen() {
     if (!mounted) return;
-    _log("Navigating to CarbonDataScreen...");
+    _log("Navigating to NavigationContainer...");
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const CarbonDataScreen()),
+      MaterialPageRoute(builder: (context) => const NavigationContainer()),
       (Route<dynamic> route) => false,
     );
   }
@@ -473,7 +469,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       const BorderRadius.vertical(top: Radius.circular(20)),
                   boxShadow: [
                     BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
+                        color: Colors.black.withAlpha(51),
                         spreadRadius: 2,
                         blurRadius: 10)
                   ]),
@@ -521,7 +517,6 @@ class _AuthScreenState extends State<AuthScreen> {
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Title text removed to match style, assuming getLegalContentWidgets adds title
               const Spacer(),
               IconButton(
                 icon: const Icon(Icons.close),
@@ -554,7 +549,6 @@ class _AuthScreenState extends State<AuthScreen> {
       },
     );
   }
-  // --- End of Dialog/Auth/Legal functions ---
 
   // --- Build Method (Landing Page) ---
   @override
@@ -564,94 +558,75 @@ class _AuthScreenState extends State<AuthScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isSmallScreen = screenWidth < 650;
-    final theme = Theme.of(context); // Get theme data once
+    final theme = Theme.of(context);
 
-    // --- NEW: Define styles for the RETRO button ---
-    final double buttonHeight = isSmallScreen ? 52 : 58; // Slightly taller
-    final double borderRadiusValue = 12.0; // Less rounded for classic feel
+    final double buttonHeight = isSmallScreen ? 52 : 58;
+    final double borderRadiusValue = 12.0;
     final borderRadius = BorderRadius.circular(borderRadiusValue);
     final textStyle = TextStyle(
       fontSize: isSmallScreen ? 15 : 17,
       fontWeight: FontWeight.bold,
       color: Colors.white,
       shadows: [
-        // Subtle text shadow for better readability on texture
         Shadow(
           offset: Offset(1.0, 1.0),
           blurRadius: 2.0,
-          color: Colors.black.withValues(alpha: 0.5),
+          color: Colors.black.withAlpha(128),
         ),
       ],
     );
 
-    // --- Decoration for the raised button look ---
     BoxDecoration raisedDecoration(bool isHalfPressed) {
       return BoxDecoration(
           borderRadius: borderRadius,
           image: const DecorationImage(
-            image:
-                AssetImage("assets/textures/wood_texture.jpeg"), // Your texture
+            image: AssetImage("assets/textures/wood_texture.jpeg"),
             fit: BoxFit.cover,
           ),
           boxShadow: isHalfPressed
               ? []
               : [
-                  // Remove shadows when pressed
-                  // Outer dark shadow (bottom right)
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.5),
+                    color: Colors.black.withAlpha(128),
                     offset: const Offset(3, 3),
                     blurRadius: 5,
                     spreadRadius: 1,
                   ),
-                  // Inner light shadow (top left) - subtle highlight
                   BoxShadow(
-                    color: Colors.white.withValues(alpha: 0.15),
+                    color: Colors.white.withAlpha(38),
                     offset: const Offset(-2, -2),
                     blurRadius: 3,
                     spreadRadius: 0,
                   ),
                 ],
           border: Border.all(
-            // Add a subtle border
-            color: Colors.black.withValues(alpha: 0.2),
+            color: Colors.black.withAlpha(51),
             width: 0.5,
           ));
     }
 
-    // --- Decoration for the depressed button look ---
-    // Uses an inner shadow effect via Gradient
     BoxDecoration depressedDecoration() {
       return BoxDecoration(
           borderRadius: borderRadius,
           image: DecorationImage(
-            // Keep the image
             image: const AssetImage("assets/textures/wood_texture.jpg"),
             fit: BoxFit.cover,
-            // REDUCED darkening effect when pressed
             colorFilter: ColorFilter.mode(
-                // Colors.black38, // Original
-                Colors.black
-                    .withValues(alpha: 0.15), // Significantly less dark overlay
-                BlendMode.darken),
+                Colors.black.withAlpha(38), BlendMode.darken),
           ),
-          // Inner shadow effect using gradient - Make shadow slightly less intense
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              // Colors.black.withValues(alpha: 0.4), // Original darker top-left
-              Colors.black.withValues(alpha: 0.25), // Lighter top-left shadow
+              Colors.black.withAlpha(64),
               Colors.transparent,
               Colors.transparent,
-              // Colors.white.withValues(alpha: 0.1), // Original lighter bottom-right
-              Colors.white
-                  .withValues(alpha: 0.08), // Slightly subtler bottom-right highlight
+              Colors.white.withAlpha(20),
             ],
             stops: const [0.0, 0.3, 0.7, 1.0],
           ),
           border: Border.all(
-              color: Colors.black.withValues(alpha: 0.5),
+            color: Colors.black.withAlpha(128),
             width: 1.0,
           ));
     }
@@ -659,7 +634,6 @@ class _AuthScreenState extends State<AuthScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // --- Animated Background --- (Keep as is)
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 1200),
             switchInCurve: Curves.easeIn,
@@ -684,24 +658,20 @@ class _AuthScreenState extends State<AuthScreen> {
                     key: const ValueKey('initial_fallback'),
                     color: Colors.blueGrey[900]),
           ),
-
-          // --- Gradient Overlay --- (Keep as is)
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withValues(alpha: 0.15),
-                  Colors.black.withValues(alpha: 0.55),
-                  Colors.black.withValues(alpha: 0.75),
+                  Colors.black.withAlpha(38),
+                  Colors.black.withAlpha(140),
+                  Colors.black.withAlpha(191),
                 ],
                 stops: const [0.0, 0.5, 1.0],
               ),
             ),
           ),
-
-          // --- Centered Content ---
           Center(
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(
@@ -715,7 +685,6 @@ class _AuthScreenState extends State<AuthScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     SizedBox(height: screenHeight * 0.05),
-                    // --- Logo, App Name, Tagline --- (Keep as is)
                     Image.asset(
                       'assets/images/carbon_shodhak_logo.png',
                       height: isSmallScreen ? 65 : 85,
@@ -751,7 +720,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       child: Text(
                         'Track Your Footprint, Grow a Greener Future.',
                         style: theme.textTheme.titleMedium?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.85),
+                          color: Colors.white.withAlpha(217),
                           fontSize: isSmallScreen ? 15 : 17,
                         ),
                         textAlign: TextAlign.center,
@@ -762,7 +731,6 @@ class _AuthScreenState extends State<AuthScreen> {
                         duration: 500.ms,
                         curve: Curves.easeOutCubic),
                     SizedBox(height: screenHeight * 0.05),
-                    // --- Top Text Block (Headline) --- (Keep as is)
                     _buildInfoBlock(
                       context,
                       logoPath: 'assets/images/carbon_shodhak_logo.png',
@@ -774,33 +742,23 @@ class _AuthScreenState extends State<AuthScreen> {
                         delay: 450.ms,
                         duration: 500.ms,
                         curve: Curves.easeOutCubic),
-
                     const SizedBox(height: AppConstants.sectionSpacing * 2.5),
-
-                    // *********************************************
-                    // ******** MODIFIED BUTTON SECTION START ********
-                    // *********************************************
                     ConstrainedBox(
                       constraints: BoxConstraints(
-                          maxWidth:
-                              isSmallScreen ? 300 : 340), // Adjusted width
+                          maxWidth: isSmallScreen ? 300 : 340),
                       child: ClipRRect(
-                        // Use ClipRRect for border radius clipping
                         borderRadius: borderRadius,
                         child: SizedBox(
                           height: buttonHeight,
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              // --- Sign In Half ---
                               Expanded(
                                 child: GestureDetector(
-                                  // Use GestureDetector for press states
                                   onTapDown: (_) =>
                                       setState(() => _isSignInPressed = true),
                                   onTapUp: (_) {
                                     setState(() => _isSignInPressed = false);
-                                    // Delay slightly before showing dialog for visual feedback
                                     Future.delayed(
                                         const Duration(milliseconds: 100), () {
                                       if (mounted)
@@ -812,21 +770,17 @@ class _AuthScreenState extends State<AuthScreen> {
                                       setState(() => _isSignInPressed = false),
                                   child: AnimatedContainer(
                                     duration: const Duration(
-                                        milliseconds: 120), // Faster animation
-                                    curve: Curves
-                                        .fastOutSlowIn, // Nice curve for press
-                                    // Apply raised or depressed decoration based on state
+                                        milliseconds: 120),
+                                    curve: Curves.fastOutSlowIn,
                                     decoration: _isSignInPressed
                                         ? depressedDecoration()
                                         : raisedDecoration(_isSignInPressed),
-                                    // Add slight translation when pressed
                                     transform: _isSignInPressed
                                         ? Matrix4.translationValues(
                                             1.5, 1.5, 0.0)
                                         : Matrix4.identity(),
                                     transformAlignment: Alignment.center,
                                     alignment: Alignment.center,
-                                    // Content slightly padded from edges
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 5),
                                     child: Row(
@@ -837,12 +791,10 @@ class _AuthScreenState extends State<AuthScreen> {
                                           Icons.login_outlined,
                                           size: isSmallScreen ? 18 : 20,
                                           color: Colors.white,
-                                          shadows: textStyle
-                                              .shadows, // Use same shadow for icon
+                                          shadows: textStyle.shadows,
                                         ),
                                         const SizedBox(width: 8),
                                         Flexible(
-                                          // Use Flexible for text wrapping if needed
                                           child: Text(
                                             'Sign In',
                                             style: textStyle,
@@ -855,15 +807,10 @@ class _AuthScreenState extends State<AuthScreen> {
                                   ),
                                 ),
                               ),
-
-                              // --- Divider ---
                               Container(
-                                width: 1.5, // Divider thickness
-                                color: Colors.black
-                                    .withValues(alpha: 0.4), // Darker divider
+                                width: 1.5,
+                                color: Colors.black.withAlpha(102),
                               ),
-
-                              // --- Sign Up Half ---
                               Expanded(
                                 child: GestureDetector(
                                   onTapDown: (_) =>
@@ -905,7 +852,6 @@ class _AuthScreenState extends State<AuthScreen> {
                                         ),
                                         const SizedBox(width: 8),
                                         Flexible(
-                                          // Use Flexible for text wrapping if needed
                                           child: Text(
                                             'Sign Up',
                                             style: textStyle,
@@ -927,13 +873,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         delay: 600.ms,
                         duration: 500.ms,
                         curve: Curves.easeOutCubic),
-                    // *******************************************
-                    // ******** MODIFIED BUTTON SECTION END ********
-                    // *******************************************
-
                     const SizedBox(height: AppConstants.sectionSpacing * 2.5),
-
-                    // --- Bottom Text Block (Explainer) --- (Keep as is)
                     _buildInfoBlock(
                       context,
                       logoPath: 'assets/images/carbon_shodhak_logo.png',
@@ -945,10 +885,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         delay: 750.ms,
                         duration: 500.ms,
                         curve: Curves.easeOutCubic),
-
                     SizedBox(height: screenHeight * 0.06),
-
-                    // --- Footer Links --- (Keep as is)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -961,17 +898,17 @@ class _AuthScreenState extends State<AuthScreen> {
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                           child: Text('Privacy Policy',
                               style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.7),
+                                  color: Colors.white.withAlpha(179),
                                   fontSize: 12,
                                   decoration: TextDecoration.underline,
                                   decorationColor:
-                                      Colors.white.withValues(alpha: 0.7))),
+                                      Colors.white.withAlpha(179))),
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 4.0),
                           child: Text('|',
                               style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.7),
+                                  color: Colors.white.withAlpha(179),
                                   fontSize: 12)),
                         ),
                         TextButton(
@@ -983,15 +920,14 @@ class _AuthScreenState extends State<AuthScreen> {
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                           child: Text('Terms of Service',
                               style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.7),
+                                  color: Colors.white.withAlpha(179),
                                   fontSize: 12,
                                   decoration: TextDecoration.underline,
                                   decorationColor:
-                                      Colors.white.withValues(alpha: 0.7))),
+                                      Colors.white.withAlpha(179))),
                         ),
                       ],
                     ).animate().fadeIn(delay: 900.ms, duration: 600.ms),
-
                     SizedBox(height: screenHeight * 0.02),
                   ],
                 ).animate().fadeIn(duration: 300.ms),
@@ -1003,7 +939,6 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  // --- Helper Widget for Logo + Text Info Blocks --- (Keep as is)
   Widget _buildInfoBlock(BuildContext context,
       {required String logoPath,
       required String text,
@@ -1014,21 +949,22 @@ class _AuthScreenState extends State<AuthScreen> {
           horizontal: AppConstants.itemSpacing * 1.5,
           vertical: AppConstants.itemSpacing * 1.25),
       decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.5),
+          color: Colors.black.withAlpha(128),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 0.5)),
+          border: Border.all(
+              color: Colors.white.withAlpha(25), width: 0.5)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min, // Prevent row from taking full width
+        mainAxisSize: MainAxisSize.min,
         children: [
           Image.asset(
             logoPath,
             height: logoSize,
             width: logoSize,
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.95),
+            color: Theme.of(context).colorScheme.primary.withAlpha(242),
             colorBlendMode: BlendMode.srcIn,
             errorBuilder: (ctx, err, st) => Icon(Icons.eco_outlined,
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.9),
+                color: Theme.of(context).colorScheme.primary.withAlpha(230),
                 size: logoSize),
           ),
           const SizedBox(width: AppConstants.itemSpacing * 1.25),
@@ -1036,7 +972,7 @@ class _AuthScreenState extends State<AuthScreen> {
             child: Text(
               text,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.95),
+                    color: Colors.white.withAlpha(242),
                     fontSize: isSmallScreen ? 14 : 16,
                     height: 1.4,
                   ),
