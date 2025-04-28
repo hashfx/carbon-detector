@@ -1,5 +1,4 @@
 // lib/widgets/stats_table.dart
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -8,12 +7,14 @@ import 'package:fl_chart/fl_chart.dart'; // Import fl_chart
 import 'package:carbon_counter/models/carbon_stats.dart';
 import 'package:carbon_counter/utils/constants.dart';
 import 'package:carbon_counter/utils/helpers.dart'; // Import helper
+import 'package:carbon_counter/screens/settings_screen.dart'; // Import enum
 
 class StatsTable extends StatelessWidget {
   final List<CarbonData> allData; // Accept the full raw data
   final DailyStats? dailyStats;
   final WeeklyStats? weeklyStats;
   final MonthlyStats? monthlyStats;
+  final GraphDisplayMode graphDisplayMode; // Accept the display mode
 
   const StatsTable({
     super.key,
@@ -21,6 +22,7 @@ class StatsTable extends StatelessWidget {
     this.dailyStats,
     this.weeklyStats,
     this.monthlyStats,
+    required this.graphDisplayMode, // Make it required
   });
 
   // --- Date Formatting Helpers (remain the same) ---
@@ -41,28 +43,21 @@ class StatsTable extends StatelessWidget {
       final localStartDate = tz.TZDateTime.from(utcStartDate, ist);
       final localEndDate = tz.TZDateTime.from(utcEndDate, ist);
 
-      // Adjust format slightly for better wrapping if needed
       final startFormat = DateFormat('dd MMM');
       final endFormat = DateFormat('dd MMM yyyy');
 
-      // Check if start and end year are the same
       if (localStartDate.year == localEndDate.year) {
-        // Check if start and end month are the same
         if (localStartDate.month == localEndDate.month) {
-          // e.g., 21 - 27 Apr 2025
           return '${DateFormat('dd').format(localStartDate)} - ${endFormat.format(localEndDate)}';
         } else {
-          // e.g., 28 Apr - 04 May 2025
           return '${startFormat.format(localStartDate)} - ${endFormat.format(localEndDate)}';
         }
       } else {
-        // e.g., 29 Dec 2024 - 04 Jan 2025
         return '${startFormat.format(localStartDate)} ${localStartDate.year} - ${endFormat.format(localEndDate)}';
       }
     } catch (e) {
       print(
           "Error formatting week $utcStartDate - $utcEndDate for display: $e");
-      // Fallback with newline for potential wrapping
       return '${DateFormat('yyyy-MM-dd').format(utcStartDate)}\n- ${DateFormat('yyyy-MM-dd').format(utcEndDate)}';
     }
   }
@@ -81,29 +76,27 @@ class StatsTable extends StatelessWidget {
   // --- Build method with LayoutBuilder (remains the same) ---
   @override
   Widget build(BuildContext context) {
-    // Build the individual table widgets once
     final dailyTableWidget = _buildSingleStatTable(
       context: context,
       title: "Daily Statistics",
       stats: dailyStats,
-      periodType: StatsPeriodType.daily, // Pass period type
+      periodType: StatsPeriodType.daily,
     );
 
     final weeklyTableWidget = _buildSingleStatTable(
       context: context,
       title: "Weekly Statistics",
       stats: weeklyStats,
-      periodType: StatsPeriodType.weekly, // Pass period type
+      periodType: StatsPeriodType.weekly,
     );
 
     final monthlyTableWidget = _buildSingleStatTable(
       context: context,
       title: "Monthly Statistics",
       stats: monthlyStats,
-      periodType: StatsPeriodType.monthly, // Pass period type
+      periodType: StatsPeriodType.monthly,
     );
 
-    // LayoutBuilder logic remains the same
     return LayoutBuilder(
       builder: (context, constraints) {
         final double maxWidth = constraints.maxWidth;
@@ -133,7 +126,7 @@ class StatsTable extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppConstants.sectionSpacing),
-              Center(child: monthlyTableWidget),
+              Center(child: monthlyTableWidget), // Removed Expanded here
             ],
           );
         } else {
@@ -160,49 +153,44 @@ class StatsTable extends StatelessWidget {
     DateTime endPeriodUtc;
 
     try {
-      // Add try-catch for safety
       switch (periodType) {
         case StatsPeriodType.daily:
           if (stats is! DailyStats) return [];
           startPeriodUtc =
               DateTime.utc(stats.date.year, stats.date.month, stats.date.day);
-          endPeriodUtc =
-              startPeriodUtc.add(const Duration(days: 1)); // End is exclusive
+          endPeriodUtc = startPeriodUtc.add(const Duration(days: 1));
           break;
         case StatsPeriodType.weekly:
           if (stats is! WeeklyStats) return [];
-          startPeriodUtc = stats.startDate; // Already UTC
-          endPeriodUtc = stats.endDate.add(const Duration(
-              days: 1)); // End is exclusive (end of the last day)
+          startPeriodUtc = stats.startDate;
+          endPeriodUtc = stats.endDate.add(const Duration(days: 1));
           break;
         case StatsPeriodType.monthly:
           if (stats is! MonthlyStats) return [];
-          startPeriodUtc = stats.monthDate; // Already UTC (first day of month)
-          // Calculate end of the month (start of next month)
+          startPeriodUtc = stats.monthDate;
           endPeriodUtc =
               DateTime.utc(startPeriodUtc.year, startPeriodUtc.month + 1, 1);
           break;
       }
 
       return allData.where((item) {
-        final itemTime = parseIsoDateTimeString(item.time); // Use helper
+        final itemTime = parseIsoDateTimeString(item.time);
         if (itemTime == null) return false;
-        // Check if itemTime is within [startPeriodUtc, endPeriodUtc)
         return !itemTime.isBefore(startPeriodUtc) &&
             itemTime.isBefore(endPeriodUtc);
       }).toList();
     } catch (e) {
       print("Error filtering data for $periodType: $e");
-      return []; // Return empty list on error
+      return [];
     }
   }
 
-  // --- MODIFIED _buildSingleStatTable Method (Opacity and Text Style) ---
+  // --- MODIFIED _buildSingleStatTable Method ---
   Widget _buildSingleStatTable({
     required BuildContext context,
     required String title,
     required dynamic stats,
-    required StatsPeriodType periodType, // Added parameter
+    required StatsPeriodType periodType,
   }) {
     final textTheme = Theme.of(context).textTheme;
     final noDataMessage = "$title: No data available yet.";
@@ -210,30 +198,34 @@ class StatsTable extends StatelessWidget {
     // Filter the data for this specific table's period
     final List<CarbonData> periodData = _filterDataForPeriod(stats, periodType);
 
-    // Determine text color based on theme brightness for better contrast
     final Brightness brightness = Theme.of(context).brightness;
     final Color textColor =
-        brightness == Brightness.dark ? Colors.white : Colors.black87;
+        brightness == Brightness.dark ? Colors.white70 : Colors.black87;
     final Color titleColor =
         brightness == Brightness.dark ? Colors.white : Colors.black;
+
+    // Determine if the background chart should be shown for this table
+    final bool showBackgroundChart =
+        graphDisplayMode == GraphDisplayMode.behindTable &&
+            periodData.length > 1;
 
     return Card(
       elevation: 2.0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-      clipBehavior: Clip.antiAlias, // Important to clip the chart
-      color: Colors
-          .transparent, // Make card background transparent if desired, or keep default Card color
+      clipBehavior: Clip.antiAlias,
+      // Make card background transparent ONLY if chart is behind it
+      color: showBackgroundChart
+          ? Colors.transparent
+          : Theme.of(context).cardColor,
       child: Stack(
-        // Use Stack to layer chart and table
+        // Use Stack ONLY if chart is behind it
         children: [
-          // ---- Background Chart (Increased Vibrancy) ----
-          if (periodData.length > 1) // Only show chart if there's data to plot
+          // ---- Background Chart (Conditional) ----
+          if (showBackgroundChart)
             Positioned.fill(
               child: Opacity(
-                // Keep overall opacity reasonable if card color is not transparent
-                opacity: 1.0, // Chart itself is fully opaque now
-                child: _buildBackgroundChart(
-                    periodData), // Colors inside chart adjusted
+                opacity: 0.9, // Keep some opacity for the chart behind
+                child: _buildBackgroundChart(periodData),
               ),
             ),
 
@@ -247,20 +239,19 @@ class StatsTable extends StatelessWidget {
                   title,
                   style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: titleColor, // Use determined text color
-                    // Optional: Add a very subtle background/shadow for extreme cases
-                    // shadows: [Shadow(blurRadius: 1, color: Colors.black.withOpacity(0.5))],
-                    // backgroundColor: Colors.grey.withOpacity(0.1),
+                    color: titleColor,
+                    // Add subtle shadow if chart is behind for readability
+                    shadows: showBackgroundChart
+                        ? [const Shadow(blurRadius: 2, color: Colors.black38)]
+                        : null,
                   ),
                   textAlign: TextAlign.center,
                 ),
               ),
               Center(
-                // Center the scrollable table content
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Padding(
-                    // Add some horizontal padding for table content
                     padding: const EdgeInsets.only(
                         bottom: 8.0, left: 8.0, right: 8.0),
                     child: stats == null
@@ -268,18 +259,23 @@ class StatsTable extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 vertical: 24.0, horizontal: 16.0),
                             constraints: const BoxConstraints(minWidth: 250),
-                            // Add subtle background to "No data" for readability
-                            color: Colors.grey.withOpacity(0.1),
+                            color: showBackgroundChart
+                                ? Colors.black.withOpacity(0.15)
+                                : Colors.grey.withOpacity(
+                                    0.1), // Darker bg if chart behind
                             child: Text(
                               noDataMessage,
                               textAlign: TextAlign.center,
                               style:
-                                  TextStyle(color: textColor.withOpacity(0.7)),
+                                  TextStyle(color: textColor.withOpacity(0.8)),
                             ),
                           )
-                        // Pass textColor to table builder
                         : _buildDataTableContent(
-                            stats: stats, textColor: textColor),
+                            stats: stats,
+                            textColor: textColor,
+                            // Add slight background to table rows ONLY if chart is behind
+                            useRowBackground: showBackgroundChart,
+                          ),
                   ),
                 ),
               ),
@@ -290,16 +286,15 @@ class StatsTable extends StatelessWidget {
     );
   }
 
-  // --- MODIFIED _buildBackgroundChart Method (Vibrant Colors) ---
+  // --- _buildBackgroundChart Method (Vibrant Colors, remains mostly the same) ---
   Widget _buildBackgroundChart(List<CarbonData> data) {
-    if (data.length < 2)
-      return const SizedBox.shrink(); // Need at least 2 points for a line
+    if (data.length < 2) return const SizedBox.shrink();
 
     List<FlSpot> mq7Spots = [];
     List<FlSpot> mq135Spots = [];
     double minY = double.infinity;
     double maxY = -double.infinity;
-    double? minX, maxX; // Milliseconds since epoch
+    double? minX, maxX;
 
     for (var item in data) {
       final dateTime = parseIsoDateTimeString(item.time);
@@ -308,6 +303,9 @@ class StatsTable extends StatelessWidget {
       final xValue = dateTime.millisecondsSinceEpoch.toDouble();
       final yMq7 = item.mq7;
       final yMq135 = item.mq135;
+
+      // Basic validation: Skip potentially invalid negative points for background chart
+      if (yMq7 < 0 || yMq135 < 0) continue;
 
       mq7Spots.add(FlSpot(xValue, yMq7));
       mq135Spots.add(FlSpot(xValue, yMq135));
@@ -324,89 +322,68 @@ class StatsTable extends StatelessWidget {
     if (minX == null ||
         maxX == null ||
         minY == double.infinity ||
-        maxY == -double.infinity) {
-      return const SizedBox.shrink(); // Not enough valid data
+        maxY == -double.infinity ||
+        mq7Spots.length < 2) {
+      return const SizedBox.shrink(); // Not enough valid data for line
     }
 
-    // Add padding to Y axis
-    if (minY == maxY) {
-      minY -= 1;
-      maxY += 1;
-    }
-    if (minY > 0) {
-      minY *= 0.95;
-    } else {
-      minY *= 1.05;
-    }
-    if (maxY > 0) {
-      maxY *= 1.05;
-    } else if (maxY < 0) {
-      maxY *= 0.95;
-    } else {
-      maxY = 1;
-    }
+    // Adjust Y axis padding
+    double yPadding = (maxY - minY) * 0.05; // 5% padding
+    if (yPadding == 0) yPadding = 1; // Handle case where min==max
+    minY -= yPadding;
+    maxY += yPadding;
+    if (minY < 0 && !data.any((d) => d.mq7 < 0 || d.mq135 < 0))
+      minY = 0; // Don't go below 0 unless data is negative
 
-    // --- VIBRANT COLORS ---
-    final mq7Color = Colors.blueAccent; // More vibrant blue
-    final mq135Color = Colors.deepOrangeAccent; // More vibrant orange
+    final mq7Color =
+        Colors.blueAccent.withOpacity(0.7); // Slightly transparent blue
+    final mq135Color =
+        Colors.orangeAccent.withOpacity(0.7); // Slightly transparent orange
 
     return LineChart(
       LineChartData(
-        backgroundColor:
-            Colors.transparent, // Chart background is transparent now
+        backgroundColor: Colors.transparent,
         minX: minX,
         maxX: maxX,
         minY: minY,
         maxY: maxY,
-        gridData: FlGridData(show: false),
+        gridData: const FlGridData(show: false),
         borderData: FlBorderData(show: false),
-        titlesData: FlTitlesData(show: false),
-        lineTouchData: LineTouchData(enabled: false),
-
+        titlesData: const FlTitlesData(show: false),
+        lineTouchData: const LineTouchData(enabled: false),
         lineBarsData: [
-          // MQ-7 Line (Vibrant Blue)
           LineChartBarData(
             spots: mq7Spots,
             isCurved: true,
-            // Use a solid vibrant color or a slightly more opaque gradient
-            color: mq7Color.withOpacity(0.8), // Solid color with some opacity
-            // gradient: LinearGradient(
-            //   colors: [mq7Color.withOpacity(0.3), mq7Color.withOpacity(0.9)],
-            // ),
-            barWidth: 3, // Slightly thicker
+            color: mq7Color,
+            barWidth: 2.5,
             isStrokeCapRound: true,
-            dotData: FlDotData(show: false),
+            dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
               gradient: LinearGradient(
-                colors: [
-                  mq7Color.withOpacity(0.1),
-                  mq7Color.withOpacity(0.4)
-                ], // Stronger fill
-                begin: Alignment.bottomCenter, end: Alignment.topCenter,
+                colors: [mq7Color.withOpacity(0.05), mq7Color.withOpacity(0.3)],
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
               ),
             ),
           ),
-          // MQ-135 Line (Vibrant Orange)
           LineChartBarData(
             spots: mq135Spots,
             isCurved: true,
-            // Use a solid vibrant color or a slightly more opaque gradient
-            color: mq135Color.withOpacity(0.8), // Solid color with some opacity
-            // gradient: LinearGradient(
-            //   colors: [mq135Color.withOpacity(0.3), mq135Color.withOpacity(0.9)],
-            // ),
-            barWidth: 3, // Slightly thicker
+            color: mq135Color,
+            barWidth: 2.5,
             isStrokeCapRound: true,
-            dotData: FlDotData(show: false),
+            dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
               gradient: LinearGradient(
                 colors: [
-                  mq135Color.withOpacity(0.1),
-                  mq135Color.withOpacity(0.4)
-                ], // Stronger fill
-                begin: Alignment.bottomCenter, end: Alignment.topCenter,
+                  mq135Color.withOpacity(0.05),
+                  mq135Color.withOpacity(0.3)
+                ],
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
               ),
             ),
           ),
@@ -415,97 +392,101 @@ class StatsTable extends StatelessWidget {
     );
   }
 
-  // --- MODIFIED _buildDataTableContent Method (Transparent Background, Text Color) ---
-  Widget _buildDataTableContent(
-      {required dynamic stats, required Color textColor}) {
+  // --- MODIFIED _buildDataTableContent Method ---
+  Widget _buildDataTableContent({
+    required dynamic stats,
+    required Color textColor,
+    required bool useRowBackground, // New parameter
+  }) {
     List<DataRow> rows = [];
     String periodLabel = 'Period';
     String periodValue = '';
-    String periodValueMq135 = '';
 
-    // Define Text Style for cells
-    final cellTextStyle = TextStyle(color: textColor);
-    final boldCellTextStyle = TextStyle(
-        color: textColor, fontWeight: FontWeight.w600); // Bold for labels
+    final cellTextStyle = TextStyle(color: textColor, fontSize: 13);
+    final boldCellTextStyle =
+        TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 13);
 
     if (stats is DailyStats) {
       periodLabel = 'Date';
       periodValue = _formatDateDisplay(stats.date);
-      periodValueMq135 = periodValue;
-      rows = _buildStatRows(
-          stats.avgMq7,
-          stats.maxMq7,
-          stats.minMq7,
-          stats.avgMq135,
-          stats.maxMq135,
-          stats.minMq135,
-          cellTextStyle); // Pass style
+      rows = _buildStatRows(stats.avgMq7, stats.maxMq7, stats.minMq7,
+          stats.avgMq135, stats.maxMq135, stats.minMq135, cellTextStyle);
     } else if (stats is WeeklyStats) {
       periodLabel = 'Week';
       periodValue = _formatWeekDisplay(stats.startDate, stats.endDate);
-      periodValueMq135 = periodValue;
-      rows = _buildStatRows(
-          stats.avgMq7,
-          stats.maxMq7,
-          stats.minMq7,
-          stats.avgMq135,
-          stats.maxMq135,
-          stats.minMq135,
-          cellTextStyle); // Pass style
+      rows = _buildStatRows(stats.avgMq7, stats.maxMq7, stats.minMq7,
+          stats.avgMq135, stats.maxMq135, stats.minMq135, cellTextStyle);
     } else if (stats is MonthlyStats) {
       periodLabel = 'Month';
       periodValue = _formatMonthDisplay(stats.monthDate);
-      periodValueMq135 = periodValue;
-      rows = _buildStatRows(
-          stats.avgMq7,
-          stats.maxMq7,
-          stats.minMq7,
-          stats.avgMq135,
-          stats.maxMq135,
-          stats.minMq135,
-          cellTextStyle); // Pass style
+      rows = _buildStatRows(stats.avgMq7, stats.maxMq7, stats.minMq7,
+          stats.avgMq135, stats.maxMq135, stats.minMq135, cellTextStyle);
     }
 
     rows.insert(
-        0,
-        DataRow(
-          cells: [
-            DataCell(
-                Text(periodLabel, style: boldCellTextStyle)), // Use bold style
-            DataCell(
-                Text(periodValue, style: cellTextStyle)), // Use normal style
-            DataCell(Text(periodValueMq135,
-                style: cellTextStyle)), // Use normal style
-          ],
-        ));
+      0,
+      DataRow(
+        cells: [
+          DataCell(Text(periodLabel, style: boldCellTextStyle)),
+          DataCell(
+            Text(
+              periodValue,
+              style: cellTextStyle,
+              overflow: TextOverflow.ellipsis,
+              softWrap: true,
+            ),
+          ),
+          DataCell(
+            Text(
+              periodValue,
+              style: cellTextStyle,
+              overflow: TextOverflow.ellipsis,
+              softWrap: true,
+            ),
+          ), // Repeat for alignment, or adjust columns
+        ],
+        // Apply subtle background to period row if chart is behind
+        color: useRowBackground
+            ? MaterialStateProperty.all(Colors.black.withOpacity(0.15))
+            : null,
+      ),
+    );
 
-    // Define Text Style for headings
+    // Apply background to data rows if chart is behind
+    if (useRowBackground) {
+      rows = rows.map((row) {
+        // Skip applying background to the first (Period) row if already done
+        if (rows.indexOf(row) == 0) return row;
+        return DataRow(
+          cells: row.cells,
+          color: MaterialStateProperty.all(Colors.black.withOpacity(0.1)),
+        );
+      }).toList();
+    }
+
     final headingTextStyle =
-        TextStyle(color: textColor, fontWeight: FontWeight.bold);
+        TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 14);
 
     return DataTable(
-      // --- REMOVE BACKGROUND COLORS ---
-      // dataRowColor: MaterialStateProperty.all(Colors.transparent), // Explicitly transparent
-      // headingRowColor: MaterialStateProperty.all(Colors.transparent), // Explicitly transparent
-      columnSpacing: 15.0,
+      columnSpacing: 12.0, // Adjusted spacing
       headingRowHeight: 35,
       dataRowMinHeight: 30,
-      dataRowMaxHeight: 55,
-      columns: [
-        // Apply text style to headings
-        DataColumn(label: Text('Metric', style: headingTextStyle)),
-        DataColumn(label: Text('MQ-7', style: headingTextStyle), numeric: true),
-        DataColumn(
-            label: Text('MQ-135', style: headingTextStyle), numeric: true),
+      dataRowMaxHeight: 60, // Allow more height for wrapping
+      horizontalMargin: 8.0, // Reduced margin
+      headingTextStyle: headingTextStyle, // Apply heading style globally
+      dataTextStyle: cellTextStyle, // Apply default cell style globally
+      columns: const [
+        DataColumn(label: Text('Metric')),
+        DataColumn(label: Text('MQ-7'), numeric: true),
+        DataColumn(label: Text('MQ-135'), numeric: true),
       ],
       rows: rows,
     );
   }
 
-  // --- MODIFIED _buildStatRows Helper (Accept Text Style) ---
+  // --- _buildStatRows Helper (remains the same) ---
   List<DataRow> _buildStatRows(double avgMq7, double maxMq7, double minMq7,
       double avgMq135, double maxMq135, double minMq135, TextStyle textStyle) {
-    // Apply the passed text style to all data cells
     return [
       DataRow(cells: [
         DataCell(Text('Average', style: textStyle)),
@@ -526,5 +507,5 @@ class StatsTable extends StatelessWidget {
   }
 }
 
-// --- Enum to help identify period type (remains the same) ---
+// --- Enum (remains the same) ---
 enum StatsPeriodType { daily, weekly, monthly }
