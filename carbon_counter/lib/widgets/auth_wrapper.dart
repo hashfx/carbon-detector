@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:carbon_counter/screens/auth_screen.dart';
-import 'package:carbon_counter/screens/navigation_container.dart';
 
 class AuthWrapper extends StatelessWidget {
   final Widget child;
@@ -18,37 +17,31 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // Add a small delay to ensure proper widget disposal
         if (snapshot.connectionState == ConnectionState.active) {
-          if (requireAuth) {
-            if (snapshot.hasData) {
-              return FadeTransition(
-                opacity: AlwaysStoppedAnimation(1.0),
-                child: child,
-              );
-            } else {
-              return FadeTransition(
-                opacity: AlwaysStoppedAnimation(1.0),
-                child: const AuthScreen(),
-              );
-            }
-          } else {
-            if (snapshot.hasData) {
-              return FadeTransition(
-                opacity: AlwaysStoppedAnimation(1.0),
-                child: const NavigationContainer(),
-              );
-            } else {
-              return FadeTransition(
-                opacity: AlwaysStoppedAnimation(1.0),
-                child: child,
-              );
-            }
+          final bool isAuthenticated = snapshot.hasData;
+
+          if (requireAuth && !isAuthenticated) {
+            // If authentication is required but user is not authenticated,
+            // redirect to auth screen
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.of(context).pushReplacementNamed('/auth');
+            });
+            return const SizedBox.shrink();
+          } else if (!requireAuth && isAuthenticated) {
+            // If authentication is not required (we're on auth screen) 
+            // but user is authenticated, redirect to home
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.of(context).pushReplacementNamed('/home');
+            });
+            return const SizedBox.shrink();
           }
+
+          // In all other cases, show the intended child
+          return child;
         }
         
-        // Show a transparent widget while transitioning
-        return const SizedBox.shrink();
+        // Show a loading indicator while checking auth state
+        return const Center(child: CircularProgressIndicator());
       },
     );
   }
