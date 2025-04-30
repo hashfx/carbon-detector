@@ -429,33 +429,36 @@ class StatsTable extends StatelessWidget {
         cells: [
           DataCell(Text(periodLabel, style: boldCellTextStyle)),
           DataCell(
-            Text(
-              periodValue,
-              style: cellTextStyle,
-              overflow: TextOverflow.ellipsis,
-              softWrap: true,
+            Container(
+              constraints: const BoxConstraints(maxWidth: 100),
+              child: Text(
+                periodValue,
+                style: cellTextStyle,
+                overflow: TextOverflow.ellipsis,
+                softWrap: true,
+              ),
             ),
           ),
           DataCell(
-            Text(
-              periodValue,
-              style: cellTextStyle,
-              overflow: TextOverflow.ellipsis,
-              softWrap: true,
+            Container(
+              constraints: const BoxConstraints(maxWidth: 100),
+              child: Text(
+                periodValue,
+                style: cellTextStyle,
+                overflow: TextOverflow.ellipsis,
+                softWrap: true,
+              ),
             ),
-          ), // Repeat for alignment, or adjust columns
+          ),
         ],
-        // Apply subtle background to period row if chart is behind
         color: useRowBackground
             ? MaterialStateProperty.all(Colors.black.withOpacity(0.15))
             : null,
       ),
     );
 
-    // Apply background to data rows if chart is behind
     if (useRowBackground) {
       rows = rows.map((row) {
-        // Skip applying background to the first (Period) row if already done
         if (rows.indexOf(row) == 0) return row;
         return DataRow(
           cells: row.cells,
@@ -467,20 +470,43 @@ class StatsTable extends StatelessWidget {
     final headingTextStyle =
         TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 14);
 
-    return DataTable(
-      columnSpacing: 12.0, // Adjusted spacing
-      headingRowHeight: 35,
-      dataRowMinHeight: 30,
-      dataRowMaxHeight: 60, // Allow more height for wrapping
-      horizontalMargin: 8.0, // Reduced margin
-      headingTextStyle: headingTextStyle, // Apply heading style globally
-      dataTextStyle: cellTextStyle, // Apply default cell style globally
-      columns: const [
-        DataColumn(label: Text('Metric')),
-        DataColumn(label: Text('MQ-7'), numeric: true),
-        DataColumn(label: Text('MQ-135'), numeric: true),
-      ],
-      rows: rows,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 400;
+
+        return DataTable(
+          columnSpacing: isNarrow ? 8.0 : 12.0,
+          headingRowHeight: 35,
+          dataRowMinHeight: 30,
+          dataRowMaxHeight: 60,
+          horizontalMargin: isNarrow ? 4.0 : 8.0,
+          headingTextStyle: headingTextStyle,
+          dataTextStyle: cellTextStyle,
+          columns: [
+            DataColumn(
+              label: Container(
+                width: isNarrow ? 60 : 80,
+                child: const Text('Metric'),
+              ),
+            ),
+            DataColumn(
+              label: Container(
+                width: isNarrow ? 70 : 90,
+                child: const Text('MQ-7'),
+              ),
+              numeric: true,
+            ),
+            DataColumn(
+              label: Container(
+                width: isNarrow ? 70 : 90,
+                child: const Text('MQ-135'),
+              ),
+              numeric: true,
+            ),
+          ],
+          rows: rows,
+        );
+      },
     );
   }
 
