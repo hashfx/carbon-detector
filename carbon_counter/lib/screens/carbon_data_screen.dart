@@ -1,5 +1,6 @@
 // lib/screens/carbon_data_screen.dart
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Needed for logout
@@ -346,65 +347,72 @@ class _CarbonDataScreenState extends State<CarbonDataScreen> {
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _fetchDataAndStats,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1000),
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppConstants.screenPadding),
-                      child: Column(
-                        children: [
-                          StatusIndicator(status: _dataStatus),
-                          const SizedBox(height: AppConstants.sectionSpacing),
-                          DataChips(data: _data.isNotEmpty ? _data.last : null),
-                          const SizedBox(
-                              height: AppConstants.sectionSpacing * 1.5),
-                          if (_graphDisplayMode ==
-                                  GraphDisplayMode.standalone &&
-                              _data.length > 1)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: AppConstants.sectionSpacing),
-                              child: Card(
-                                elevation: 2.0,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8.0)),
-                                clipBehavior: Clip.antiAlias,
-                                child: CarbonDataChart(data: _data),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isNarrow = constraints.maxWidth < 400;
+                  final padding = isNarrow ? 8.0 : AppConstants.screenPadding;
+                  
+                  return SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: 1200,
+                          minWidth: min(constraints.maxWidth, 300),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.all(padding),
+                          child: Column(
+                            children: [
+                              StatusIndicator(status: _dataStatus),
+                              const SizedBox(height: AppConstants.sectionSpacing),
+                              DataChips(data: _data.isNotEmpty ? _data.last : null),
+                              const SizedBox(height: AppConstants.sectionSpacing * 1.5),
+                              if (_graphDisplayMode == GraphDisplayMode.standalone && _data.length > 1)
+                                Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: AppConstants.sectionSpacing,
+                                    horizontal: isNarrow ? 0 : AppConstants.sectionSpacing,
+                                  ),
+                                  child: Card(
+                                    elevation: 2.0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8.0)
+                                    ),
+                                    clipBehavior: Clip.antiAlias,
+                                    child: CarbonDataChart(data: _data),
+                                  ),
+                                ),
+                              if (_graphDisplayMode == GraphDisplayMode.standalone && _data.length <= 1)
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: AppConstants.sectionSpacing
+                                  ),
+                                  child: Text("Not enough data for standalone graph."),
+                                ),
+                              Text(
+                                "Historical Data Statistics",
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w500
+                                ),
+                                textAlign: TextAlign.center,
                               ),
-                            ),
-                          if (_graphDisplayMode ==
-                                  GraphDisplayMode.standalone &&
-                              _data.length <= 1)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(
-                                  vertical: AppConstants.sectionSpacing),
-                              child:
-                                  Text("Not enough data for standalone graph."),
-                            ),
-                          Text(
-                            "Historical Data Statistics",
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w500),
-                            textAlign: TextAlign.center,
+                              const SizedBox(height: AppConstants.itemSpacing),
+                              StatsTable(
+                                allData: _data,
+                                dailyStats: _dailyStats,
+                                weeklyStats: _weeklyStats,
+                                monthlyStats: _monthlyStats,
+                                graphDisplayMode: _graphDisplayMode,
+                              ),
+                              const SizedBox(height: AppConstants.sectionSpacing),
+                            ],
                           ),
-                          const SizedBox(height: AppConstants.itemSpacing),
-                          StatsTable(
-                            allData: _data,
-                            dailyStats: _dailyStats,
-                            weeklyStats: _weeklyStats,
-                            monthlyStats: _monthlyStats,
-                            graphDisplayMode: _graphDisplayMode,
-                          ),
-                          const SizedBox(height: AppConstants.sectionSpacing),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                }
               ),
             ),
     );
